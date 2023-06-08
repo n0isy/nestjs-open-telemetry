@@ -1,0 +1,224 @@
+import { Test } from '@nestjs/testing'
+import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
+import { Injectable } from '@nestjs/common'
+import { Cron, Interval, Timeout } from '@nestjs/schedule'
+import { Trace } from '../decorators'
+import { OpenTelemetryModule } from '../../open-telemetry.module'
+import { ScheduleInjector } from '../injectors'
+
+describe('Tracing Scheduler Injector Test', () => {
+  const exporter = new NoopSpanProcessor()
+  const exporterSpy = jest.spyOn(exporter, 'onStart')
+
+  const sdkModule = OpenTelemetryModule.forRoot({
+    spanProcessor: exporter,
+    autoInjectors: [ScheduleInjector],
+  })
+
+  beforeEach(() => {
+    exporterSpy.mockClear()
+    exporterSpy.mockReset()
+  })
+
+  it('should trace scheduled cron method', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      @Cron('2 * * * * *')
+
+      hi() {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      providers: [HelloService],
+    }).compile()
+    const app = context.createNestApplication()
+    const helloService = app.get(HelloService)
+    await app.init()
+
+    // when
+    helloService.hi()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Scheduler->Cron->HelloService.hi' }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+
+  it('should trace scheduled and named cron method', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      @Cron('2 * * * * *', { name: 'AKSUNGUR' })
+
+      hi() {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      providers: [HelloService],
+    }).compile()
+    const app = context.createNestApplication()
+    const helloService = app.get(HelloService)
+    await app.init()
+
+    // when
+    helloService.hi()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Scheduler->Cron->HelloService.AKSUNGUR',
+      }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+
+  it('should not trace already decorated cron method', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      @Cron('2 * * * * *')
+      @Trace('ORUC_REIS')
+      hi() {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      providers: [HelloService],
+    }).compile()
+    const app = context.createNestApplication()
+    const helloService = app.get(HelloService)
+    await app.init()
+
+    // when
+    helloService.hi()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Provider->HelloService.ORUC_REIS' }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+
+  it('should trace scheduled interval method', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      @Interval(100)
+
+      hi() {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      providers: [HelloService],
+    }).compile()
+    const app = context.createNestApplication()
+    const helloService = app.get(HelloService)
+    await app.init()
+
+    // when
+    helloService.hi()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Scheduler->Interval->HelloService.hi' }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+
+  it('should trace scheduled and named interval method', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      @Interval('FATIH', 100)
+
+      hi() {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      providers: [HelloService],
+    }).compile()
+    const app = context.createNestApplication()
+    const helloService = app.get(HelloService)
+    await app.init()
+
+    // when
+    helloService.hi()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Scheduler->Interval->HelloService.FATIH',
+      }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+
+  it('should trace scheduled timeout method', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      @Timeout(100)
+
+      hi() {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      providers: [HelloService],
+    }).compile()
+    const app = context.createNestApplication()
+    const helloService = app.get(HelloService)
+    await app.init()
+
+    // when
+    helloService.hi()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Scheduler->Timeout->HelloService.hi' }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+
+  it('should trace scheduled and named timeout method', async () => {
+    // given
+    @Injectable()
+    class HelloService {
+      @Timeout('BARBAROS', 100)
+
+      hi() {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      providers: [HelloService],
+    }).compile()
+    const app = context.createNestApplication()
+    await app.init()
+    const helloService = app.get(HelloService)
+
+    // when
+    helloService.hi()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Scheduler->Timeout->HelloService.BARBAROS',
+      }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+})
