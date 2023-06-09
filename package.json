@@ -1,6 +1,6 @@
 {
   "name": "@easyv/nestjs-opentelemetry",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "deeply integrated OpenTelemetry module for Nestjs",
   "author": "yuuki.shamiko@icloud.com",
   "license": "GPL-3.0-or-later",
