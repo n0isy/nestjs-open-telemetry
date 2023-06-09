@@ -4,7 +4,7 @@ import { Controller, Get, Injectable } from '@nestjs/common'
 import request from 'supertest'
 import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
-import { ControllerInjector } from '../injectors'
+import { ControllerInjector, DecoratorInjector } from '../injectors'
 
 describe('Base Trace Injector Test', () => {
   const exporter = new NoopSpanProcessor()
@@ -12,7 +12,7 @@ describe('Base Trace Injector Test', () => {
 
   const sdkModule = OpenTelemetryModule.forRoot({
     spanProcessor: exporter,
-    autoInjectors: [ControllerInjector],
+    autoInjectors: [DecoratorInjector, ControllerInjector],
   })
 
   beforeEach(() => {

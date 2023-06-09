@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common'
 import { Cron, Interval, Timeout } from '@nestjs/schedule'
 import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
-import { ScheduleInjector } from '../injectors'
+import { DecoratorInjector, ScheduleInjector } from '../injectors'
 
 describe('Tracing Scheduler Injector Test', () => {
   const exporter = new NoopSpanProcessor()
@@ -12,7 +12,7 @@ describe('Tracing Scheduler Injector Test', () => {
 
   const sdkModule = OpenTelemetryModule.forRoot({
     spanProcessor: exporter,
-    autoInjectors: [ScheduleInjector],
+    autoInjectors: [DecoratorInjector, ScheduleInjector],
   })
 
   beforeEach(() => {
@@ -41,7 +41,7 @@ describe('Tracing Scheduler Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Scheduler->Cron->HelloService.hi' }),
+      expect.objectContaining({ name: 'Scheduler -> Cron -> HelloService.hi' }),
       expect.any(Object),
     )
 
@@ -70,7 +70,7 @@ describe('Tracing Scheduler Injector Test', () => {
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Scheduler->Cron->HelloService.AKSUNGUR',
+        name: 'Scheduler -> Cron -> HelloService.AKSUNGUR',
       }),
       expect.any(Object),
     )
@@ -99,7 +99,7 @@ describe('Tracing Scheduler Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Provider->HelloService.ORUC_REIS' }),
+      expect.objectContaining({ name: 'Provider -> HelloService.ORUC_REIS' }),
       expect.any(Object),
     )
 
@@ -127,7 +127,7 @@ describe('Tracing Scheduler Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Scheduler->Interval->HelloService.hi' }),
+      expect.objectContaining({ name: 'Scheduler -> Interval -> HelloService.hi' }),
       expect.any(Object),
     )
 
@@ -156,7 +156,7 @@ describe('Tracing Scheduler Injector Test', () => {
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Scheduler->Interval->HelloService.FATIH',
+        name: 'Scheduler -> Interval -> HelloService.FATIH',
       }),
       expect.any(Object),
     )
@@ -185,7 +185,7 @@ describe('Tracing Scheduler Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Scheduler->Timeout->HelloService.hi' }),
+      expect.objectContaining({ name: 'Scheduler -> Timeout -> HelloService.hi' }),
       expect.any(Object),
     )
 
@@ -214,7 +214,7 @@ describe('Tracing Scheduler Injector Test', () => {
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Scheduler->Timeout->HelloService.BARBAROS',
+        name: 'Scheduler -> Timeout -> HelloService.BARBAROS',
       }),
       expect.any(Object),
     )

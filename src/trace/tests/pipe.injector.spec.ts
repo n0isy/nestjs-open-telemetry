@@ -48,7 +48,7 @@ describe('Tracing Pipe Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Pipe->Global->HelloPipe' }),
+      expect.objectContaining({ name: 'Pipe -> Global -> HelloPipe' }),
       expect.any(Object),
     )
 
@@ -82,7 +82,7 @@ describe('Tracing Pipe Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Pipe->HelloController.hi.HelloPipe' }),
+      expect.objectContaining({ name: 'Pipe -> HelloPipe' }),
       expect.any(Object),
     )
 

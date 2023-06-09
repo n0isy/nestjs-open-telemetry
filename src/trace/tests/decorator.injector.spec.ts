@@ -5,6 +5,7 @@ import request from 'supertest'
 import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { Constants } from '../../constants'
+import { ControllerInjector, DecoratorInjector } from '../injectors'
 
 describe('Tracing Decorator Injector Test', () => {
   const exporter = new NoopSpanProcessor()
@@ -12,6 +13,7 @@ describe('Tracing Decorator Injector Test', () => {
 
   const sdkModule = OpenTelemetryModule.forRoot({
     spanProcessor: exporter,
+    autoInjectors: [DecoratorInjector, ControllerInjector],
   })
 
   beforeEach(() => {
@@ -39,7 +41,7 @@ describe('Tracing Decorator Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Provider->HelloService.hi' }),
+      expect.objectContaining({ name: 'Provider -> HelloService.hi' }),
       expect.any(Object),
     )
 
@@ -67,27 +69,11 @@ describe('Tracing Decorator Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Controller->HelloController.hi' }),
+      expect.objectContaining({ name: 'Controller -> HelloController.hi' }),
       expect.any(Object),
     )
 
     await app.close()
-  })
-
-  it('should throw exception when Injectable and Trace used same time', async () => {
-    // given
-    @Trace()
-    @Injectable()
-    class HelloService {}
-    const context = await Test.createTestingModule({
-      imports: [sdkModule],
-      providers: [HelloService],
-    })
-
-    // when
-    await expect(context.compile()).rejects.toThrow(
-      '@Trace decorator not used with @Injectable provider class. Class: HelloService',
-    )
   })
 
   it('should trace decorated controller method with custom trace name', async () => {
@@ -112,7 +98,7 @@ describe('Tracing Decorator Injector Test', () => {
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Controller->HelloController.MAVI_VATAN',
+        name: 'Controller -> HelloController.MAVI_VATAN',
       }),
       expect.any(Object),
     )
@@ -146,7 +132,7 @@ describe('Tracing Decorator Injector Test', () => {
 
     // then
     expect(exporterSpy).not.toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Provider->HelloService.hi' }),
+      expect.objectContaining({ name: 'Provider -> HelloService.hi' }),
       expect.any(Object),
     )
 

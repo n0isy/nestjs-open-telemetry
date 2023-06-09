@@ -3,7 +3,7 @@ import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Controller, ForbiddenException, Get } from '@nestjs/common'
 import request from 'supertest'
 import waitForExpect from 'wait-for-expect'
-import { ControllerInjector } from '../injectors'
+import { ControllerInjector, DecoratorInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { Trace } from '../decorators'
 
@@ -13,7 +13,7 @@ describe('Tracing Controller Injector Test', () => {
 
   const sdkModule = OpenTelemetryModule.forRoot({
     spanProcessor: exporter,
-    autoInjectors: [ControllerInjector],
+    autoInjectors: [DecoratorInjector, ControllerInjector],
   })
 
   beforeEach(() => {
@@ -43,7 +43,7 @@ describe('Tracing Controller Injector Test', () => {
     // then
     await waitForExpect(() =>
       expect(exporterSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Controller->HelloController.hi' }),
+        expect.objectContaining({ name: 'Controller -> HelloController.hi' }),
         expect.any(Object),
       ),
     )
@@ -75,7 +75,7 @@ describe('Tracing Controller Injector Test', () => {
     await waitForExpect(() =>
       expect(exporterSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'Controller->HelloController.hi',
+          name: 'Controller -> HelloController.hi',
           status: {
             code: 2,
             message: 'Forbidden',
@@ -109,7 +109,7 @@ describe('Tracing Controller Injector Test', () => {
     // then
     await waitForExpect(() =>
       expect(exporterSpy).not.toHaveBeenCalledWith(
-        expect.objectContaining({ name: 'Controller->HelloController.hi' }),
+        expect.objectContaining({ name: 'Controller -> HelloController.hi' }),
         expect.any(Object),
       ),
     )
@@ -122,8 +122,7 @@ describe('Tracing Controller Injector Test', () => {
     @Controller('hello')
     class HelloController {
       @Get()
-      @Trace({ name: 'SLM_CNM' })
-
+      @Trace('SLM_CNM')
       hi() {}
     }
 
@@ -141,7 +140,7 @@ describe('Tracing Controller Injector Test', () => {
     await waitForExpect(() =>
       expect(exporterSpy).toHaveBeenCalledWith(
         expect.objectContaining({
-          name: 'Controller->HelloController.SLM_CNM',
+          name: 'Controller -> HelloController.SLM_CNM',
         }),
         expect.any(Object),
       ),

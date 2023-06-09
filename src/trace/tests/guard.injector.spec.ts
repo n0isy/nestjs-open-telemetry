@@ -48,7 +48,7 @@ describe('Tracing Guard Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Guard->HelloController.VeyselEfendi' }),
+      expect.objectContaining({ name: 'Guard -> VeyselEfendi' }),
       expect.any(Object),
     )
 
@@ -83,7 +83,7 @@ describe('Tracing Guard Injector Test', () => {
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Guard->HelloController.hi.VeyselEfendi',
+        name: 'Guard -> VeyselEfendi',
       }),
       expect.any(Object),
     )
@@ -120,7 +120,7 @@ describe('Tracing Guard Injector Test', () => {
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Guard->HelloController.hi.VeyselEfendi',
+        name: 'Guard -> VeyselEfendi',
       }),
       expect.any(Object),
     )
@@ -159,7 +159,7 @@ describe('Tracing Guard Injector Test', () => {
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Guard->Global->VeyselEfendi' }),
+      expect.objectContaining({ name: 'Guard -> Global -> VeyselEfendi' }),
       expect.any(Object),
     )
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger, Scope } from '@nestjs/common'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import type { TraceOptions } from '@app/nestjs-otel'
+import type { TraceOptions } from '../decorators'
 import { AttributeNames, Constants, ProviderScope } from '../../constants'
 import { BaseInjector } from './base.injector'
 
