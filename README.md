@@ -30,13 +30,13 @@ Only supports NestJS 9.x
 
 ### Installation 
 ``` bash
-npm install @yuuki-sakura/nestjs-opentelemetry --save
+npm install @easyv/nestjs-opentelemetry --save
 ```
 ***
 ### Configuration
 This is a basic configuration without any trace and metric exporter, but includes default metrics and injectors
 ```ts
-import { OpenTelemetryModule } from '@yuuki-sakura/nestjs-opentelemetry';
+import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
 
 @Module({
   imports: [
@@ -50,7 +50,7 @@ export class AppModule {}
 
 Async configuration example
 ```ts
-import { OpenTelemetryModule } from '@yuuki-sakura/nestjs-opentelemetry';
+import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
@@ -80,7 +80,7 @@ export class AppModule {}
 ### Distributed Tracing
 Simple setup with Zipkin exporter, including with default trace instrumentations.
 ```ts
-import { OpenTelemetryModule } from '@yuuki-sakura/nestjs-opentelemetry';
+import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 
@@ -107,7 +107,7 @@ List of supported official exporters [here](https://opentelemetry.io/docs/js/exp
 This library supports auto instrumentations for Nestjs layers, but sometimes you need to define custom span for specific method blocks like providers methods. In this case `@Span` decorator will help you.
 ```ts
 import { Injectable } from '@nestjs/common';
-import { Trace } from '@yuuki-sakura/nestjs-opentelemetry';
+import { Trace } from '@easyv/nestjs-opentelemetry';
 
 @Injectable()
 export class AppService {
@@ -154,7 +154,7 @@ import {
   LoggerInjector,
   PipeInjector,
   ScheduleInjector,
-} from '@yuuki-sakura/nestjs-opentelemetry';
+} from '@easyv/nestjs-opentelemetry';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
 import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 
