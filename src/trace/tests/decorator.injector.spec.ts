@@ -4,8 +4,8 @@ import { Controller, Get, Injectable } from '@nestjs/common'
 import request from 'supertest'
 import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
-import { OpenTelemetryConstants } from '../../open-telemetry.constants'
 import { ControllerInjector, DecoratorInjector } from '../injectors'
+import { OpenTelemetryConstants } from '../../open-telemetry.enums'
 
 describe('Tracing Decorator Injector Test', () => {
   const exporter = new NoopSpanProcessor()

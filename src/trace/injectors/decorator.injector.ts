@@ -1,7 +1,7 @@
 import { Injectable, Logger, Scope } from '@nestjs/common'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import type { TraceOptions } from '../decorators'
-import { AttributeNames, OpenTelemetryConstants, ProviderScope } from '../../open-telemetry.constants'
+import { AttributeNames, OpenTelemetryConstants, ProviderScope } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
 @Injectable()

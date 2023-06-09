@@ -2,7 +2,7 @@ import { Injectable, Logger, PipeTransform, Type } from '@nestjs/common'
 import { APP_PIPE } from '@nestjs/core'
 import { PIPES_METADATA, ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import { AttributeNames, NestScope } from '../../open-telemetry.constants'
+import { AttributeNames, NestScope } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
 @Injectable()

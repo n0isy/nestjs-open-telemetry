@@ -1,6 +1,6 @@
 import { Injectable, Logger, Type } from '@nestjs/common'
 import { MiddlewareModule } from '@nestjs/core/middleware/middleware-module'
-import { AttributeNames } from '../../open-telemetry.constants'
+import { AttributeNames } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
 @Injectable()

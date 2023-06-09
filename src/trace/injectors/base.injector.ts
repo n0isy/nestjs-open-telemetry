@@ -5,7 +5,7 @@ import { PATH_METADATA } from '@nestjs/common/constants'
 import { Injectable as InjectableDec } from '@nestjs/common'
 import { INVALID_SPAN_CONTEXT, Span, SpanOptions, SpanStatusCode, context, trace } from '@opentelemetry/api'
 import type { Attributes } from '@opentelemetry/api'
-import { OpenTelemetryConstants } from '../../open-telemetry.constants'
+import { OpenTelemetryConstants } from '../../open-telemetry.enums'
 import type { Injector } from './injector'
 
 export type DynamicAttributesHook = (option: { args: unknown[]; thisArg: unknown; parentSpan?: Span }) => Attributes

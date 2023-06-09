@@ -1,7 +1,7 @@
 import { Injectable, Logger, NestInterceptor, Type } from '@nestjs/common'
 import { APP_INTERCEPTOR } from '@nestjs/core'
 import { INTERCEPTORS_METADATA } from '@nestjs/common/constants'
-import { AttributeNames, NestScope } from '../../open-telemetry.constants'
+import { AttributeNames, NestScope } from '../../open-telemetry.enums'
 import { GuardInjector } from './guard.injector'
 import { BaseInjector } from './base.injector'
 

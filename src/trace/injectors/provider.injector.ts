@@ -3,7 +3,7 @@ import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import { InternalCoreModule } from '@nestjs/core/injector/internal-core-module'
 import { DiscoveryService, MetadataScanner, ModuleRef, ModulesContainer } from '@nestjs/core'
 import type { OpenTelemetryModuleConfig } from '../../open-telemetry.interface'
-import { AttributeNames, OpenTelemetryConstants, ProviderScope } from '../../open-telemetry.constants'
+import { AttributeNames, OpenTelemetryConstants, ProviderScope } from '../../open-telemetry.enums'
 import { LoggerInjector } from './logger.injector'
 import { BaseInjector } from './base.injector'
 

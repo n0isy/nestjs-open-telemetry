@@ -5,11 +5,11 @@ import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentation
 import { Resource } from '@opentelemetry/resources'
 import { OpenTelemetryService } from './open-telemetry.service'
 import {
-  OpenTelemetryConstants,
   defaultConfig,
 } from './open-telemetry.constants'
 import type { Injector } from './trace/injectors'
 import type { OpenTelemetryModuleAsyncOption, OpenTelemetryModuleConfig } from './open-telemetry.interface'
+import { OpenTelemetryConstants } from './open-telemetry.enums'
 
 export class OpenTelemetryModule {
   public static forRoot(

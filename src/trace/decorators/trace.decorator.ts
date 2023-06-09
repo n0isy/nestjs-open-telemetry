@@ -3,7 +3,8 @@ import { MetadataScanner } from '@nestjs/core'
 import type { SpanKind } from '@opentelemetry/api/build/src/trace/span_kind'
 import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
 import { BaseInjector } from '../injectors'
-import { OpenTelemetryConstants } from '../../open-telemetry.constants'
+
+import { OpenTelemetryConstants } from '../../open-telemetry.enums'
 
 export interface TraceOptions {
   /**

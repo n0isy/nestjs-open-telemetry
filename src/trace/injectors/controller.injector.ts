@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { AttributeNames } from '../../open-telemetry.constants'
+import { AttributeNames } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
 @Injectable()
