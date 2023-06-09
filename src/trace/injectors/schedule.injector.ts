@@ -1,7 +1,7 @@
 import { Injectable, Logger, Scope } from '@nestjs/common'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import type { Attributes } from '@opentelemetry/api'
-import { AttributeNames, ProviderScope } from '../../constants'
+import { AttributeNames, ProviderScope } from '../../open-telemetry.constants'
 import { BaseInjector } from './base.injector'
 
 enum SchedulerType {

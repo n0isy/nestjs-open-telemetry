@@ -1,7 +1,7 @@
 import { Injectable, Logger, Scope } from '@nestjs/common'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import type { TraceOptions } from '../decorators'
-import { AttributeNames, Constants, ProviderScope } from '../../constants'
+import { AttributeNames, OpenTelemetryConstants, ProviderScope } from '../../open-telemetry.constants'
 import { BaseInjector } from './base.injector'
 
 @Injectable()
@@ -94,6 +94,6 @@ export class DecoratorInjector extends BaseInjector {
   }
 
   private getTraceOptions(func: Function): TraceOptions {
-    return Reflect.getMetadata(Constants.TRACE_METADATA, func)
+    return Reflect.getMetadata(OpenTelemetryConstants.TRACE_METADATA, func)
   }
 }

@@ -25,6 +25,9 @@
     "opencensus"
   ],
   "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prepare": "mkdir -p .git/hooks && echo \"echo '{\\\"*.*\\\":[\\\"eslint --fix\\\"]}' | npx lint-staged -c -\" > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit",
     "prebuild": "rimraf dist",

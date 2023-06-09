@@ -4,7 +4,7 @@ import { Controller, Get, Injectable } from '@nestjs/common'
 import request from 'supertest'
 import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
-import { Constants } from '../../constants'
+import { OpenTelemetryConstants } from '../../open-telemetry.constants'
 import { ControllerInjector, DecoratorInjector } from '../injectors'
 
 describe('Tracing Decorator Injector Test', () => {
@@ -115,7 +115,7 @@ describe('Tracing Decorator Injector Test', () => {
       hi() {}
     }
     Reflect.defineMetadata(
-      Constants.TRACE_METADATA_ACTIVE,
+      OpenTelemetryConstants.TRACE_METADATA_ACTIVE,
       1,
       HelloService.prototype.hi,
     )

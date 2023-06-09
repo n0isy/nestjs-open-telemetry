@@ -1,7 +1,7 @@
 import { CanActivate, Injectable, Logger, Type } from '@nestjs/common'
 import { APP_GUARD } from '@nestjs/core'
 import { GUARDS_METADATA } from '@nestjs/common/constants'
-import { AttributeNames, NestScope } from '../../constants'
+import { AttributeNames, NestScope } from '../../open-telemetry.constants'
 import { BaseInjector } from './base.injector'
 
 @Injectable()

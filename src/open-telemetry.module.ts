@@ -4,10 +4,10 @@ import { ModuleRef } from '@nestjs/core'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { Resource } from '@opentelemetry/resources'
 import { OpenTelemetryService } from './open-telemetry.service'
-import { Constants } from './constants'
 import {
+  OpenTelemetryConstants,
   defaultConfig,
-} from './open-telemetry.config'
+} from './open-telemetry.constants'
 import type { Injector } from './trace/injectors'
 import type { OpenTelemetryModuleAsyncOption, OpenTelemetryModuleConfig } from './open-telemetry.interface'
 
@@ -31,7 +31,7 @@ export class OpenTelemetryModule {
         this.buildProvider(config),
         this.buildInjectors(config),
         {
-          provide: Constants.SDK_CONFIG,
+          provide: OpenTelemetryConstants.SDK_CONFIG,
           useValue: config,
         },
       ],
@@ -55,7 +55,7 @@ export class OpenTelemetryModule {
   ): FactoryProvider {
     const injectors = configuration?.autoInjectors ?? []
     return {
-      provide: Constants.SDK_INJECTORS,
+      provide: OpenTelemetryConstants.SDK_INJECTORS,
       useFactory: (...injectors: Injector[]) => {
         for (const injector of injectors) {
           if (injector['inject'])
@@ -80,7 +80,7 @@ export class OpenTelemetryModule {
         this.buildAsyncProvider(),
         this.buildAsyncInjectors(),
         {
-          provide: Constants.SDK_CONFIG,
+          provide: OpenTelemetryConstants.SDK_CONFIG,
           useFactory: configuration.useFactory,
           inject: configuration.inject,
         },
@@ -102,13 +102,13 @@ export class OpenTelemetryModule {
         sdk.start()
         return sdk
       },
-      inject: [Constants.SDK_CONFIG],
+      inject: [OpenTelemetryConstants.SDK_CONFIG],
     }
   }
 
   private static buildAsyncInjectors(): FactoryProvider {
     return {
-      provide: Constants.SDK_INJECTORS,
+      provide: OpenTelemetryConstants.SDK_INJECTORS,
       useFactory: async (config: OpenTelemetryModuleConfig, moduleRef: ModuleRef) => {
         config = { ...defaultConfig, ...config }
         const injectors
@@ -123,7 +123,7 @@ export class OpenTelemetryModule {
 
         return {}
       },
-      inject: [Constants.SDK_CONFIG, ModuleRef],
+      inject: [OpenTelemetryConstants.SDK_CONFIG, ModuleRef],
     }
   }
 }

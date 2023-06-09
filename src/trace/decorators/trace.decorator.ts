@@ -2,8 +2,8 @@ import { CustomDecorator, Logger, SetMetadata } from '@nestjs/common'
 import { MetadataScanner } from '@nestjs/core'
 import type { SpanKind } from '@opentelemetry/api/build/src/trace/span_kind'
 import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
-import { BaseInjector } from '../injectors/base.injector'
-import { Constants } from '../../constants'
+import { BaseInjector } from '../injectors'
+import { OpenTelemetryConstants } from '../../open-telemetry.constants'
 
 export interface TraceOptions {
   /**
@@ -20,7 +20,7 @@ export interface TraceOptions {
 
 export function Trace<T extends TraceOptions | undefined | string>(optionsOrName?: T): (keyof T) extends never ? CustomDecorator : MethodDecorator {
   const options = typeof optionsOrName === 'string' ? { name: optionsOrName } : optionsOrName ?? {}
-  return SetMetadata(Constants.TRACE_METADATA, options)
+  return SetMetadata(OpenTelemetryConstants.TRACE_METADATA, options)
 }
 
 const metadataScanner = new MetadataScanner()
