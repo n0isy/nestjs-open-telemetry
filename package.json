@@ -1,5 +1,5 @@
 {
-  "name": "@yuuki-sakura/nestjs-opentelemetry",
+  "name": "@easyv/nestjs-opentelemetry",
   "version": "1.0.0",
   "description": "deeply integrated OpenTelemetry module for Nestjs",
   "author": "yuuki.shamiko@icloud.com",

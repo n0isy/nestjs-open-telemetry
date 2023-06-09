@@ -4,7 +4,7 @@ import type { Controller, Injectable } from '@nestjs/common/interfaces'
 import { PATH_METADATA } from '@nestjs/common/constants'
 import { Injectable as InjectableDec } from '@nestjs/common'
 import { INVALID_SPAN_CONTEXT, Span, SpanOptions, SpanStatusCode, context, trace } from '@opentelemetry/api'
-import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
+import type { Attributes } from '@opentelemetry/api'
 import { Constants } from '../../constants'
 import type { Injector } from './injector'
 

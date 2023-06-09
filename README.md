@@ -1,12 +1,12 @@
 <p align="center">
-  <img width="450" alt="NestJS OpenTelemetry logo" src="https://raw.githubusercontent.com/MetinSeylan/Nestjs-OpenTelemetry/main/docs/logo.png"/>
+  <img width="450" alt="NestJS OpenTelemetry logo" src="https://raw.githubusercontent.com/Yuuki-Sakura/Nestjs-OpenTelemetry/main/docs/logo.png"/>
 </p>
 
 <h1 align="center">NestJS OpenTelemetry</h1>
 <p align="center">
-<a href="https://www.npmjs.com/package/@yuuki-sakura/nestjs-opentelemetry"><img src="https://img.shields.io/npm/v/@yuuki-sakura/nestjs-opentelemetry.svg"/> <img src="https://img.shields.io/npm/dt/@yuuki-sakura/nestjs-opentelemetry.svg"/></a>
-<a href="https://github.com/MetinSeylan/Nestjs-OpenTelemetry"><img src="https://img.shields.io/npm/l/@yuuki-sakura/nestjs-opentelemetry.svg"/></a>
-<a href="https://github.com/MetinSeylan/Nestjs-OpenTelemetry"><img src="https://img.shields.io/github/stars/MetinSeylan/nestjs-opentelemetry.svg"/></a>
+<a href="https://www.npmjs.com/package/@easyv/nestjs-opentelemetry"><img src="https://img.shields.io/npm/v/@easyv/nestjs-opentelemetry.svg"/> <img src="https://img.shields.io/npm/dt/@easyv/nestjs-opentelemetry.svg"/></a>
+<a href="https://github.com/Yuuki-Sakura/Nestjs-OpenTelemetry"><img src="https://img.shields.io/npm/l/@easyv/nestjs-opentelemetry.svg"/></a>
+<a href="https://github.com/Yuuki-Sakura/Nestjs-OpenTelemetry"><img src="https://img.shields.io/github/stars/Yuuki-Sakura/nestjs-opentelemetry.svg"/></a>
 </p>
 
 This library provides deeply integrated protocol-agnostic Nestjs [OpenTelemetry](https://opentelemetry.io/) instrumentations, metrics and SDK.

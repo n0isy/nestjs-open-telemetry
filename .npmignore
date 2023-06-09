@@ -1,0 +1,9 @@
+.github
+.idea
+jest.config.js
+node_modules
+.eslintignore
+.eslintrc.js
+renovate.json
+tsconfig.json
+pnpm-lock.yaml
