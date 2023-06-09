@@ -48,7 +48,7 @@ import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
 export class AppModule {}
 ```
 
-Async configuration example
+Async configuration example (Not recommended, May cause auto instrumentations to not work)
 ```ts
 import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
 import { ConfigModule, ConfigService } from '@nestjs/config';
