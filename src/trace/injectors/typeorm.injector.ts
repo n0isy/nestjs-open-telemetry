@@ -1,14 +1,52 @@
-import fg from 'fast-glob'
 import type { Type } from '@nestjs/common'
-import { Injectable, Logger } from '@nestjs/common'
-import type { DatabaseType, EntityManager, EntityMetadata, EntityTarget, QueryRunner } from 'typeorm'
+import { Inject, Injectable, Logger } from '@nestjs/common'
+import type {
+  DataSource,
+  DatabaseType,
+  EntityManager,
+  EntityMetadata,
+  EntityTarget,
+  QueryRunner,
+} from 'typeorm'
 import { DbSystemValues, SemanticAttributes } from '@opentelemetry/semantic-conventions'
 import type { BaseDataSourceOptions } from 'typeorm/data-source/BaseDataSourceOptions'
 import type { DataSourceOptions } from 'typeorm/data-source/DataSourceOptions'
 import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
-import { SpanKind } from '@opentelemetry/api'
+import { SpanKind, context, trace } from '@opentelemetry/api'
 import { Span } from '@opentelemetry/sdk-trace-base'
+import { ModulesContainer } from '@nestjs/core'
+import fg from 'fast-glob'
+import { OpenTelemetryConstants } from '../../open-telemetry.enums'
+import { OpenTelemetryModuleConfig } from '../../open-telemetry.interface'
 import { BaseInjector } from './base.injector'
+
+export interface TypeormInjectorOptions {
+  /** set to `true` if you want to capture the parameter values for parameterized SQL queries (**may leak sensitive information**) */
+  collectParameters?: boolean
+}
+
+const DB_STATEMENT_PARAMETERS = 'db.statement.parameters'
+
+type EntityManagerMethods = keyof EntityManager
+const usingEntityPersistExecutor: EntityManagerMethods[] = ['save', 'remove', 'softRemove', 'recover']
+const usingQueryBuilder: EntityManagerMethods[] = [
+  'insert',
+  'update',
+  'delete',
+  'softDelete',
+  'restore',
+  'count',
+  'find',
+  'findAndCount',
+  'findByIds',
+  'findOne',
+  'increment',
+  'decrement',
+]
+const entityManagerMethods: EntityManagerMethods[] = [
+  ...usingEntityPersistExecutor,
+  ...usingQueryBuilder,
+]
 
 function getDbSystemValue(options: BaseDataSourceOptions): DbSystemValues {
   switch (options.type) {
@@ -116,44 +154,54 @@ function getConnectionAttributes(options: DataSourceOptions): Attributes {
   }
 }
 
-const attributeCache = new Map<QueryRunner, Attributes>()
-function getSemanticAttributes(queryRunner: QueryRunner): Attributes {
-  if (!attributeCache.has(queryRunner)) {
-    const options = queryRunner.connection.options
+const attributeCache = new Map<DataSource, Attributes>()
+function getSemanticAttributes(dataSource: DataSource): Attributes {
+  if (!attributeCache.has(dataSource)) {
+    const options = dataSource.options
     const attributes = getConnectionAttributes(options)
-    attributeCache.set(queryRunner, attributes)
+    attributeCache.set(dataSource, attributes)
   }
-  return attributeCache.get(queryRunner)!
+  return attributeCache.get(dataSource)!
 }
 
 @Injectable()
 export class TypeormInjector extends BaseInjector {
   private readonly logger = new Logger(TypeormInjector.name)
+  private readonly config: TypeormInjectorOptions
+  constructor(
+    modulesContainer: ModulesContainer,
+    @Inject(OpenTelemetryConstants.SDK_CONFIG)
+      config: OpenTelemetryModuleConfig,
+  ) {
+    super(modulesContainer)
+    if (config.injectorsConfig?.[TypeormInjector.name])
+      this.config = config.injectorsConfig[TypeormInjector.name] as TypeormInjectorOptions
+    else
+      this.config = {}
+  }
+
   public inject(): void {
     this.injectQueryRunner()
     this.injectEntityManager()
   }
 
   public injectEntityManager(): void {
-    const prototype = this.loadEntityManager().prototype as any
-    const keys = this.metadataScanner.getAllMethodNames(
-      prototype,
-    )
-    const excludeKeys = ['transaction', 'query', 'createQueryBuilder', 'hasId', 'getId', 'withRepository', 'getCustomRepository', 'release']
+    const prototype = this.loadDependencies('EntityManager')?.prototype
+    if (!prototype)
+      return
 
-    for (const key of keys) {
-      if (!excludeKeys.includes(key) && !this.isAffected(prototype[key])) {
-        const name = `TypeORM -> EntityManager -> ${prototype[key].name}`
-        const func = prototype[key] as Function
+    for (const key of entityManagerMethods) {
+      if (!this.isAffected(prototype[key])) {
+        const name = `TypeORM -> EntityManager -> ${key}`
         prototype[key] = this.wrap(
-          func,
+          prototype[key],
           name,
           {},
           true,
           ({ args, thisArg }) => {
             const entityManager = thisArg as EntityManager
             let metadata: EntityMetadata
-            if (['save', 'remove', 'softRemove', 'recover'].includes(func.name)) {
+            if (usingEntityPersistExecutor.includes(key)) {
               const entityOrTarget = args[0] as EntityTarget<any> | object | object[]
               let target: EntityTarget<any>
               if (Array.isArray(entityOrTarget))
@@ -173,22 +221,12 @@ export class TypeormInjector extends BaseInjector {
             return {
               [SemanticAttributes.DB_NAME]: metadata.schema ?? metadata.database,
               [SemanticAttributes.DB_SQL_TABLE]: metadata.tableName,
+              ...getSemanticAttributes(entityManager.connection),
             }
           },
         )
         this.logger.log(`Mapped ${name}`)
       }
-    }
-  }
-
-  private loadEntityManager(): Type<EntityManager> | never {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires,@typescript-eslint/no-require-imports
-      return require('typeorm').EntityManager
-    }
-    catch (e) {
-      this.logger.error('typeorm not installed')
-      throw e
     }
   }
 
@@ -202,12 +240,12 @@ export class TypeormInjector extends BaseInjector {
         if (!queryRunner)
           return
         const prototype = queryRunner.prototype
-        const func = prototype.query
-        if (func === undefined)
+        if (prototype.query === undefined)
           return
+
         prototype.query = this.wrap(
-          func,
-          'TypeORM -> query',
+          prototype.query,
+          'TypeORM -> raw query',
           {
             kind: SpanKind.CLIENT,
           },
@@ -215,15 +253,38 @@ export class TypeormInjector extends BaseInjector {
           ({ args, thisArg, parentSpan }) => {
             const runner = thisArg as QueryRunner
             const parentAttributes = parentSpan instanceof Span ? parentSpan.attributes : {}
-            return {
+            const statement = args[0] as string
+            const operation = statement.trim().split(' ')[0].toUpperCase()
+            const span = trace.getSpan(context.active())
+            span?.updateName(`TypeORM -> ${operation}`)
+            const attributes = {
               [SemanticAttributes.DB_STATEMENT]: args[0] as string,
               [SemanticAttributes.DB_NAME]: parentAttributes[SemanticAttributes.DB_NAME],
               [SemanticAttributes.DB_SQL_TABLE]: parentAttributes[SemanticAttributes.DB_SQL_TABLE],
-              ...getSemanticAttributes(runner),
+              [SemanticAttributes.DB_OPERATION]: operation,
+              ...getSemanticAttributes(runner.connection),
             }
+            if (this.config.collectParameters) {
+              try {
+                attributes[DB_STATEMENT_PARAMETERS] = JSON.stringify(args[1])
+              }
+              catch (e) {}
+            }
+            return attributes
           },
         )
         this.logger.log(`Mapped ${queryRunner.name}`)
       })
+  }
+
+  private loadDependencies<T extends keyof typeof import('typeorm')>(key: T): Type<(typeof import('typeorm'))[T]> | undefined {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports,@typescript-eslint/no-var-requires
+      return require('typeorm')[key]
+    }
+    catch (e) {
+      this.logger.warn('typeorm is not installed, TypeormInjector will be disabled.')
+      return void 0
+    }
   }
 }

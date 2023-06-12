@@ -25,19 +25,33 @@ export function Trace<T extends TraceOptions | undefined | string>(optionsOrName
 }
 
 const metadataScanner = new MetadataScanner()
-const logger = new Logger('TracePlainClass')
-export function TracePlainClass(): ClassDecorator {
-  return (target) => {
+const logger = new Logger('TracePlain')
+export function TracePlain<T extends TraceOptions | undefined | string>(optionsOrName?: T): MethodDecorator & ClassDecorator {
+  const options: TraceOptions = typeof optionsOrName === 'string' ? { name: optionsOrName } : optionsOrName ?? {}
+  return (target: Function | object, propertyKey?: any, descriptor?: any) => {
+    const prototype = typeof target === 'function' ? target.prototype : target
     const injector = BaseInjector.prototype
+    if (descriptor) {
+      if (!injector['isAffected'](descriptor.value)) {
+        const name = `Class -> ${prototype.constructor.name}.${propertyKey}`
+        descriptor.value = injector['wrap'](
+          descriptor.value,
+          name,
+          options,
+        )
+        logger.log(`Mapped ${name}`)
+      }
+      return descriptor
+    }
     const keys = metadataScanner.getAllMethodNames(
-      target.prototype,
+      prototype,
     )
 
     for (const key of keys) {
-      if (!injector['isAffected'](target.prototype[key])) {
-        const name = `Class -> ${target.name}.${key}`
-        target.prototype[key] = injector['wrap'](
-          target.prototype[key],
+      if (!injector['isAffected'](prototype[key])) {
+        const name = `Class -> ${prototype.constructor.name}.${key}`
+        prototype[key] = injector['wrap'](
+          prototype[key],
           name,
         )
         logger.log(`Mapped ${name}`)

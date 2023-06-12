@@ -67,13 +67,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 export class AppModule {}
 ```
 #### Default Parameters
-| key                 | value                                                                                                                                                                                                                    | description                                                                                                                                                                                                                                                               |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| traceAutoInjectors  | ControllerInjector, GuardInjector, EventEmitterInjector, ScheduleInjector, PipeInjector, LoggerInjector                                                                                                                  | default auto trace instrumentations                                                                                                                                                                                                                                       |
-| contextManager      | AsyncLocalStorageContextManager                                                                                                                                                                                          | default trace context manager inherited from <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a> |
-| instrumentations    | AutoInstrumentations                                                                                                                                                                                                     | default instrumentations inherited from <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a>      |
-| spanProcessor       | NoopSpanProcessor                                                                                                                                                                                                        | default spanProcessor inherited from  <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a>        |
-| textMapPropagator   | JaegerPropagator, B3Propagator                                                                                                                                                                                           | default textMapPropagator inherited from <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a>     |
+| key               | value                                                                                                                                                                            | description                                                                                                                                                                                                                                                               |
+|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| traceInjectors    | DecoratorInjector, ScheduleInjector, ControllerInjector, GuardInjector, PipeInjector, InterceptorInjector, TypeormInjector, LoggerInjector, ProviderInjector, MiddlewareInjector | default auto trace instrumentations                                                                                                                                                                                                                                       |
+| contextManager    | AsyncLocalStorageContextManager                                                                                                                                                  | default trace context manager inherited from <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a> |
+| instrumentations  | AutoInstrumentations                                                                                                                                                             | default instrumentations inherited from <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a>      |
+| spanProcessor     | NoopSpanProcessor                                                                                                                                                                | default spanProcessor inherited from  <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a>        |
+| textMapPropagator | W3CTraceContextPropagator                                                                                                                                                        | default textMapPropagator inherited from <a href="https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration"> NodeSDKConfiguration </a>     |
 
 `OpenTelemetryModule.forRoot()` takes [OpenTelemetryModuleConfig](https://github.com/MetinSeylan/Nestjs-OpenTelemetry/blob/main/src/OpenTelemetryModuleConfig.ts#L25) as a parameter, this type is inherited by [NodeSDKConfiguration](https://github.com/open-telemetry/opentelemetry-js/blob/745bd5c34d3961dc73873190adc763747e5e026d/experimental/packages/opentelemetry-sdk-node/src/types.ts#:~:text=NodeSDKConfiguration) so you can use same OpenTelemetry SDK parameter.
 ***
@@ -104,7 +104,7 @@ After setup, your application will be instrumented, so that you can see almost e
 List of supported official exporters [here](https://opentelemetry.io/docs/js/exporters/).
 ***
 #### Trace Decorators
-This library supports auto instrumentations for Nestjs layers, but sometimes you need to define custom span for specific method blocks like providers methods. In this case `@Span` decorator will help you.
+This library supports auto instrumentations for Nestjs layers, but sometimes you need to define custom span for specific method blocks like providers methods. In this case `@Trace` and `@TracePlain` decorator will help you.
 ```ts
 import { Injectable } from '@nestjs/common';
 import { Trace } from '@easyv/nestjs-opentelemetry';
@@ -121,6 +121,7 @@ Also `@Trace` decorator takes `name` field as a parameter
 ```ts
 @Trace({ name: 'hello' })
 ```
+
 ***
 #### Trace Providers
 In an advanced usage case, you need to access the native OpenTelemetry Trace provider to access them from Nestjs application context.
@@ -161,7 +162,7 @@ import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
 @Module({
   imports: [
     OpenTelemetryModule.forRoot({
-      traceAutoInjectors: [
+      traceInjectors: [
         ControllerInjector,
         GuardInjector,
         EventEmitterInjector,
@@ -184,6 +185,7 @@ export class AppModule {}
 | Instance              | Description                                                                                                          |
 |-----------------------|----------------------------------------------------------------------------------------------------------------------|
 | `ControllerInjector`  | Auto trace all of module controllers                                                                                 |
+| `DecoratorInjector`   | Auto trace all of decorator providers                                                                                |
 | `GuardInjector`       | Auto trace all of module guards including global guards                                                              |
 | `PipeInjector`        | Auto trace all of module pipes including global pipes                                                                |
 | `InterceptorInjector` | Auto trace all of module interceptors including global interceptors                                                  |

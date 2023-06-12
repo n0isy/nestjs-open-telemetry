@@ -60,7 +60,13 @@ export abstract class BaseInjector implements Injector {
     }
   }
 
-  protected wrap(func: Function, traceName: string, spanOptions: SpanOptions = {}, requireParentSpan = false, dynamicAttributesHook?: DynamicAttributesHook): Function {
+  protected wrap(
+    func: Function,
+    traceName: string,
+    spanOptions: SpanOptions = {},
+    requireParentSpan = false,
+    dynamicAttributesHook?: DynamicAttributesHook,
+  ): Function {
     const method = {
       [func.name](...args: any[]) {
         const tracer = trace.getTracer('default')
@@ -73,8 +79,8 @@ export abstract class BaseInjector implements Injector {
           spanOptions,
           ctx,
         )
-
-        return context.with(trace.setSpan(ctx, span), (currentSpan) => {
+        const contextWithSpan = trace.setSpan(ctx, span)
+        return context.with(contextWithSpan, (currentSpan) => {
           if (dynamicAttributesHook)
             currentSpan.setAttributes(dynamicAttributesHook({ args, thisArg: this, parentSpan }))
 
