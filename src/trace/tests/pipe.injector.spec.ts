@@ -1,7 +1,6 @@
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { Controller, Get, PipeTransform, UsePipes } from '@nestjs/common'
-import { PIPES_METADATA } from '@nestjs/common/constants'
+import { Controller, Get, Param, PipeTransform, UsePipes } from '@nestjs/common'
 import { APP_PIPE } from '@nestjs/core'
 import { PipeInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
@@ -65,7 +64,6 @@ describe('Tracing Pipe Injector Test', () => {
     class HelloController {
       @Get()
       @UsePipes(HelloPipe)
-
       async hi() {}
     }
     const context = await Test.createTestingModule({
@@ -73,12 +71,40 @@ describe('Tracing Pipe Injector Test', () => {
       controllers: [HelloController],
     }).compile()
     const app = context.createNestApplication()
-    const helloController = app.get(HelloController)
     await app.init()
 
     // when
-    const pipes = Reflect.getMetadata(PIPES_METADATA, helloController.hi)
-    await pipes[0].transform(1)
+    await HelloPipe.prototype.transform()
+
+    // then
+    expect(exporterSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Pipe -> HelloPipe' }),
+      expect.any(Object),
+    )
+
+    await app.close()
+  })
+
+  it('should trace param pipe', async () => {
+    // given
+    class HelloPipe implements PipeTransform {
+      async transform(v: any) { return v }
+    }
+
+    @Controller('hello')
+    class HelloController {
+      @Get(':id')
+      async hi(@Param('id', HelloPipe) _id: string) {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      controllers: [HelloController],
+    }).compile()
+    const app = context.createNestApplication()
+    await app.init()
+
+    // when
+    await HelloPipe.prototype.transform(1)
 
     // then
     expect(exporterSpy).toHaveBeenCalledWith(

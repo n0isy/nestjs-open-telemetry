@@ -22,7 +22,7 @@ export class PipeInjector extends BaseInjector {
 
       for (const key of keys) {
         if (this.isPath(prototype[key]) || this.isPatten(prototype[key])) {
-          const pipes = this.getPipes(prototype, key).map(
+          this.getPipes(prototype, key).map(
             pipe =>
               this.wrapPipe(
                 pipe,
@@ -30,14 +30,6 @@ export class PipeInjector extends BaseInjector {
                 prototype[key],
               ),
           )
-
-          if (pipes.length > 0) {
-            Reflect.defineMetadata(
-              PIPES_METADATA,
-              pipes,
-              prototype[key],
-            )
-          }
         }
       }
     }
@@ -79,10 +71,10 @@ export class PipeInjector extends BaseInjector {
     pipe: Type<PipeTransform>,
     controller: InstanceWrapper,
     func: Function,
-  ): Type<PipeTransform> {
+  ): void {
     const pipeProto = pipe['prototype'] ?? pipe
     if (this.isAffected(pipeProto.transform))
-      return pipe
+      return
 
     const traceName = `Pipe -> ${pipeProto.constructor.name}`
     pipeProto.transform = this.wrap(pipeProto.transform, traceName, {
@@ -96,7 +88,6 @@ export class PipeInjector extends BaseInjector {
       },
     })
     this.logger.log(`Mapped ${traceName}`)
-    return pipeProto
   }
 
   private getPipes<T extends { [k: string]: any }, K extends keyof T>(prototype: T, key: K): Type<PipeTransform>[] {
