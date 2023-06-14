@@ -88,17 +88,17 @@ export abstract class BaseInjector implements Injector {
             const result = func.apply(this, args)
             if (result instanceof Promise) {
               return result
-                .then(res => res)
+                .then((res) => {
+                  currentSpan.end()
+                  return res
+                })
                 .catch(error => BaseInjector.recordException(error, currentSpan))
-                .finally(() => currentSpan.end())
             }
+            currentSpan.end()
             return result
           }
           catch (error) {
             BaseInjector.recordException(error as Error, currentSpan)
-          }
-          finally {
-            currentSpan.end()
           }
         }, undefined, span)
       },
@@ -117,6 +117,7 @@ export abstract class BaseInjector implements Injector {
   protected static recordException(error: Error, span: Span): never {
     span.recordException(error)
     span.setStatus({ code: SpanStatusCode.ERROR, message: error.message })
+    span.end()
     throw error
   }
 
