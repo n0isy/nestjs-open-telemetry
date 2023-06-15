@@ -30,8 +30,7 @@
   ],
   "scripts": {
     "prepare": "mkdir -p .git/hooks && echo \"echo '{\\\"*.*\\\":[\\\"eslint --fix\\\"]}' | npx lint-staged -c -\" > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit",
-    "prebuild": "rimraf dist",
-    "build": "nest build",
+    "build": "rimraf dist && nest build",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

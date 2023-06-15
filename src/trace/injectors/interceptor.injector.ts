@@ -3,10 +3,10 @@ import { APP_INTERCEPTOR } from '@nestjs/core'
 import { INTERCEPTORS_METADATA } from '@nestjs/common/constants'
 import { AttributeNames, NestScope } from '../../open-telemetry.enums'
 import { GuardInjector } from './guard.injector'
-import { BaseInjector } from './base.injector'
+import { EnhancerInjector } from './enhancer.injector'
 
 @Injectable()
-export class InterceptorInjector extends BaseInjector {
+export class InterceptorInjector extends EnhancerInjector {
   private readonly logger = new Logger(GuardInjector.name)
 
   public inject(): void {
@@ -16,23 +16,29 @@ export class InterceptorInjector extends BaseInjector {
 
     for (const controller of controllers) {
       if (this.isIntercepted(controller.metatype)) {
-        const interceptors = this.getInterceptors(controller.metatype).map((interceptor) => {
-          const prototype = interceptor['prototype'] ?? interceptor
-          if (this.isAffected(prototype.intercept))
-            return interceptor
-          const traceName = `Interceptor -> ${prototype.constructor.name}`
-          prototype.intercept = this.wrap(prototype.intercept, traceName, {
-            attributes: {
-              [AttributeNames.MODULE]: controller.host?.name,
-              [AttributeNames.CONTROLLER]: controller.name,
-              [AttributeNames.INTERCEPTOR]: prototype.constructor.name,
-              [AttributeNames.SCOPE]: NestScope.CONTROLLER,
-              [AttributeNames.INJECTOR]: InterceptorInjector.name,
-            },
+        const interceptors = this.getInterceptors(controller.metatype)
+          .map((interceptor) => {
+            const wrappedInterceptor = this.wrapEnhancer(interceptor)
+            const prototype = typeof wrappedInterceptor === 'function' ? wrappedInterceptor['prototype'] : wrappedInterceptor
+            if (this.isAffected(prototype.intercept))
+              return wrappedInterceptor
+            const traceName = `Interceptor -> ${controller.name}.${prototype.constructor.name}`
+            prototype.intercept = this.wrap(prototype.intercept, traceName, {
+              attributes: {
+                [AttributeNames.MODULE]: controller.host?.name,
+                [AttributeNames.CONTROLLER]: controller.name,
+                [AttributeNames.INTERCEPTOR]: prototype.constructor.name,
+                [AttributeNames.SCOPE]: NestScope.CONTROLLER,
+                [AttributeNames.INJECTOR]: InterceptorInjector.name,
+              },
+            })
+
+            if (typeof wrappedInterceptor === 'function' && typeof interceptor === 'function')
+              this.resolveWrappedEnhancer(controller.host!, interceptor, wrappedInterceptor)
+
+            this.logger.log(`Mapped ${traceName}`)
+            return wrappedInterceptor
           })
-          this.logger.log(`Mapped ${traceName}`)
-          return interceptor
-        })
 
         if (interceptors.length > 0)
           Reflect.defineMetadata(INTERCEPTORS_METADATA, interceptors, controller.metatype)
@@ -44,12 +50,13 @@ export class InterceptorInjector extends BaseInjector {
 
       for (const key of keys) {
         if (this.isIntercepted(controller.metatype.prototype[key])) {
-          const interceptors = this.getInterceptors(controller.metatype.prototype[key]).map(
-            (interceptor) => {
-              const prototype = interceptor['prototype'] ?? interceptor
+          const interceptors = this.getInterceptors(controller.metatype.prototype[key])
+            .map((interceptor) => {
+              const wrappedInterceptor = this.wrapEnhancer(interceptor)
+              const prototype = typeof wrappedInterceptor === 'function' ? wrappedInterceptor['prototype'] : wrappedInterceptor
               if (this.isAffected(prototype.intercept))
-                return interceptor
-              const traceName = `Interceptor -> ${prototype.constructor.name}`
+                return wrappedInterceptor
+              const traceName = `Interceptor -> ${controller.name}.${controller.metatype.prototype[key].name}.${prototype.constructor.name}`
               prototype.intercept = this.wrap(
                 prototype.intercept,
                 traceName,
@@ -64,10 +71,14 @@ export class InterceptorInjector extends BaseInjector {
                   },
                 },
               )
+
+              if (typeof wrappedInterceptor === 'function' && typeof interceptor === 'function')
+                this.resolveWrappedEnhancer(controller.host!, interceptor, wrappedInterceptor)
+
               this.logger.log(`Mapped ${traceName}`)
               return interceptor
             },
-          )
+            )
 
           if (interceptors.length > 0) {
             Reflect.defineMetadata(

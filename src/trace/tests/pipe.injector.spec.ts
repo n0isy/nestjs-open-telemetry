@@ -2,7 +2,9 @@ import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Controller, Get, Param, PipeTransform, UsePipes } from '@nestjs/common'
 import { APP_PIPE } from '@nestjs/core'
-import { PipeInjector } from '../injectors'
+import request from 'supertest'
+import waitForExpect from 'wait-for-expect'
+import { ControllerInjector, PipeInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 
 describe('Tracing Pipe Injector Test', () => {
@@ -11,7 +13,7 @@ describe('Tracing Pipe Injector Test', () => {
 
   const sdkModule = OpenTelemetryModule.forRoot({
     spanProcessor: exporter,
-    autoInjectors: [PipeInjector],
+    autoInjectors: [ControllerInjector, PipeInjector],
   })
 
   beforeEach(() => {
@@ -62,9 +64,9 @@ describe('Tracing Pipe Injector Test', () => {
 
     @Controller('hello')
     class HelloController {
-      @Get()
+      @Get('/:id')
       @UsePipes(HelloPipe)
-      async hi() {}
+      async hi(@Param('id') _id: string) {}
     }
     const context = await Test.createTestingModule({
       imports: [sdkModule],
@@ -74,12 +76,16 @@ describe('Tracing Pipe Injector Test', () => {
     await app.init()
 
     // when
-    await HelloPipe.prototype.transform()
+    await request(app.getHttpServer()).get('/hello/1').send().expect(200)
 
     // then
-    expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Pipe -> HelloPipe' }),
-      expect.any(Object),
+    await waitForExpect(() =>
+      expect(exporterSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Pipe -> HelloController.hi.HelloPipe',
+        }),
+        expect.any(Object),
+      ),
     )
 
     await app.close()
@@ -93,7 +99,7 @@ describe('Tracing Pipe Injector Test', () => {
 
     @Controller('hello')
     class HelloController {
-      @Get(':id')
+      @Get('/:id')
       async hi(@Param('id', HelloPipe) _id: string) {}
     }
     const context = await Test.createTestingModule({
@@ -104,12 +110,16 @@ describe('Tracing Pipe Injector Test', () => {
     await app.init()
 
     // when
-    await HelloPipe.prototype.transform(1)
+    await request(app.getHttpServer()).get('/hello/1').send().expect(200)
 
     // then
-    expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Pipe -> HelloPipe' }),
-      expect.any(Object),
+    await waitForExpect(() =>
+      expect(exporterSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Pipe -> HelloController.hi.0.HelloPipe',
+        }),
+        expect.any(Object),
+      ),
     )
 
     await app.close()

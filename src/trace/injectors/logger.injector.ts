@@ -4,34 +4,39 @@ import type { Injector } from './injector'
 
 export class LoggerInjector implements Injector {
   public inject(): void {
-    Logger.prototype.log = this.wrapPrototype(
+    Logger.prototype.log = this.wrap(
       Logger.prototype.log,
+      'log',
     )
-    Logger.prototype.debug = this.wrapPrototype(
+    Logger.prototype.debug = this.wrap(
       Logger.prototype.debug,
+      'debug',
     )
-    Logger.prototype.error = this.wrapPrototype(
+    Logger.prototype.error = this.wrap(
       Logger.prototype.error,
+      'error',
     )
-    Logger.prototype.verbose = this.wrapPrototype(
+    Logger.prototype.verbose = this.wrap(
       Logger.prototype.verbose,
+      'verbose',
     )
-    Logger.prototype.warn = this.wrapPrototype(
+    Logger.prototype.warn = this.wrap(
       Logger.prototype.warn,
+      'warn',
     )
   }
 
-  private wrapPrototype(func: Function) {
+  private wrap(func: Function, eventName?: string) {
     return {
       [func.name](...args: any[]) {
         const currentSpan = trace.getSpan(context.active())
         if (currentSpan) {
-          currentSpan.addEvent(func.name, {
+          currentSpan.addEvent(eventName ?? func.name, {
             message: args[0],
           })
         }
 
-        func.apply(this, args)
+        return func.apply(this, args)
       },
     }[func.name]
   }

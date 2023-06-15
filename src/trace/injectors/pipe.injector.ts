@@ -1,17 +1,20 @@
-import { Injectable, Logger, PipeTransform, Type } from '@nestjs/common'
+import { Injectable, Logger, PipeTransform, Type, assignMetadata } from '@nestjs/common'
 import { APP_PIPE } from '@nestjs/core'
 import { PIPES_METADATA, ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import { AttributeNames, NestScope } from '../../open-telemetry.enums'
-import { BaseInjector } from './base.injector'
+import { EnhancerInjector } from './enhancer.injector'
 
 @Injectable()
-export class PipeInjector extends BaseInjector {
+export class PipeInjector extends EnhancerInjector {
   private readonly logger = new Logger(PipeInjector.name)
 
   public inject(): void {
     this.injectGlobals()
+    this.injectControllers()
+  }
 
+  private injectControllers() {
     const controllers = this.getControllers()
 
     for (const controller of controllers) {
@@ -22,7 +25,7 @@ export class PipeInjector extends BaseInjector {
 
       for (const key of keys) {
         if (this.isPath(prototype[key]) || this.isPatten(prototype[key])) {
-          this.getPipes(prototype, key).map(
+          const pipes = this.getPipes(prototype, key).map(
             pipe =>
               this.wrapPipe(
                 pipe,
@@ -30,9 +33,60 @@ export class PipeInjector extends BaseInjector {
                 prototype[key],
               ),
           )
+          if (pipes.length > 0) {
+            Reflect.defineMetadata(
+              PIPES_METADATA,
+              pipes,
+              prototype[key],
+            )
+          }
+          this.wrapParamsPipes(controller, prototype, key)
         }
       }
     }
+  }
+
+  private wrapParamsPipes(controller: InstanceWrapper, prototype: object, key: string): void {
+    const params = Reflect.getMetadata(ROUTE_ARGS_METADATA, prototype.constructor, key) as ReturnType<typeof assignMetadata>
+    if (!params)
+      return
+    for (const param of Object.values(params))
+      param.pipes = param.pipes.map(pipe => this.wrapPipe(pipe, controller, (prototype as any)[key], param.index))
+    Reflect.defineMetadata(ROUTE_ARGS_METADATA, params, prototype.constructor, key)
+  }
+
+  private wrapPipe(
+    pipe: Type<PipeTransform> | PipeTransform,
+    controller: InstanceWrapper,
+    func: Function,
+    index?: number,
+  ): PipeTransform | Type<PipeTransform> {
+    const wrappedPipe = this.wrapEnhancer(pipe)
+    const pipeProto = typeof wrappedPipe === 'function' ? wrappedPipe.prototype : wrappedPipe
+    if (this.isAffected(pipeProto.transform))
+      return wrappedPipe
+
+    const traceName = `Pipe -> ${controller.name}.${func.name}${index != null ? `.${index}` : ''}.${pipeProto.constructor.name}`
+    pipeProto.transform = this.wrap(pipeProto.transform, traceName, {
+      attributes: {
+        [AttributeNames.MODULE]: controller.host?.name,
+        [AttributeNames.CONTROLLER]: controller.name,
+        [AttributeNames.PIPE]: pipeProto.constructor.name,
+        [AttributeNames.SCOPE]: NestScope.METHOD,
+        [AttributeNames.PROVIDER_METHOD]: func.name,
+        [AttributeNames.INJECTOR]: PipeInjector.name,
+      },
+    })
+
+    if (typeof wrappedPipe === 'function' && typeof pipe === 'function')
+      this.resolveWrappedEnhancer(controller.host!, pipe, wrappedPipe)
+
+    this.logger.log(`Mapped ${traceName}`)
+    return wrappedPipe
+  }
+
+  private getPipes<T extends { [k: string]: any }, K extends keyof T>(prototype: T, key: K): (Type<PipeTransform> | PipeTransform)[] {
+    return Reflect.getMetadata(PIPES_METADATA, prototype[key]) ?? []
   }
 
   private injectGlobals() {
@@ -65,36 +119,5 @@ export class PipeInjector extends BaseInjector {
         }
       }
     }
-  }
-
-  private wrapPipe(
-    pipe: Type<PipeTransform>,
-    controller: InstanceWrapper,
-    func: Function,
-  ): void {
-    const pipeProto = pipe['prototype'] ?? pipe
-    if (this.isAffected(pipeProto.transform))
-      return
-
-    const traceName = `Pipe -> ${pipeProto.constructor.name}`
-    pipeProto.transform = this.wrap(pipeProto.transform, traceName, {
-      attributes: {
-        [AttributeNames.MODULE]: controller.host?.name,
-        [AttributeNames.CONTROLLER]: controller.name,
-        [AttributeNames.PIPE]: pipeProto.constructor.name,
-        [AttributeNames.SCOPE]: NestScope.METHOD,
-        [AttributeNames.PROVIDER_METHOD]: func.name,
-        [AttributeNames.INJECTOR]: PipeInjector.name,
-      },
-    })
-    this.logger.log(`Mapped ${traceName}`)
-  }
-
-  private getPipes<T extends { [k: string]: any }, K extends keyof T>(prototype: T, key: K): Type<PipeTransform>[] {
-    const params = Reflect.getMetadata(ROUTE_ARGS_METADATA, prototype.constructor, key as string)
-    const pipes: Type<PipeTransform>[] = Object.values<{ pipes: Type<PipeTransform>[] }>(params ?? {})
-      .map(e => e.pipes)
-      .flat()
-    return pipes.concat(Reflect.getMetadata(PIPES_METADATA, prototype[key]) || [])
   }
 }

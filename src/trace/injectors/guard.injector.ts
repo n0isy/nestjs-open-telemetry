@@ -2,10 +2,10 @@ import { CanActivate, Injectable, Logger, Type } from '@nestjs/common'
 import { APP_GUARD } from '@nestjs/core'
 import { GUARDS_METADATA } from '@nestjs/common/constants'
 import { AttributeNames, NestScope } from '../../open-telemetry.enums'
-import { BaseInjector } from './base.injector'
+import { EnhancerInjector } from './enhancer.injector'
 
 @Injectable()
-export class GuardInjector extends BaseInjector {
+export class GuardInjector extends EnhancerInjector {
   private readonly logger = new Logger(GuardInjector.name)
 
   public inject(): void {
@@ -15,23 +15,29 @@ export class GuardInjector extends BaseInjector {
 
     for (const controller of controllers) {
       if (this.isGuarded(controller.metatype)) {
-        const guards = this.getGuards(controller.metatype).map((guard) => {
-          const prototype = guard['prototype'] ?? guard
-          if (this.isAffected(prototype.canActivate))
-            return guard
-          const traceName = `Guard -> ${prototype.constructor.name}`
-          prototype.canActivate = this.wrap(prototype.canActivate, traceName, {
-            attributes: {
-              [AttributeNames.MODULE]: controller.host?.name,
-              [AttributeNames.CONTROLLER]: controller.name,
-              [AttributeNames.GUARD]: prototype.constructor.name,
-              [AttributeNames.SCOPE]: NestScope.CONTROLLER,
-              [AttributeNames.INJECTOR]: GuardInjector.name,
-            },
+        const guards = this.getGuards(controller.metatype)
+          .map((guard) => {
+            const wrappedGuard = this.wrapEnhancer(guard)
+            const prototype = typeof wrappedGuard === 'function' ? wrappedGuard['prototype'] : wrappedGuard
+            if (this.isAffected(prototype.canActivate))
+              return wrappedGuard
+            const traceName = `Guard -> ${controller.name}.${prototype.constructor.name}`
+            prototype.canActivate = this.wrap(prototype.canActivate, traceName, {
+              attributes: {
+                [AttributeNames.MODULE]: controller.host?.name,
+                [AttributeNames.CONTROLLER]: controller.name,
+                [AttributeNames.GUARD]: prototype.constructor.name,
+                [AttributeNames.SCOPE]: NestScope.CONTROLLER,
+                [AttributeNames.INJECTOR]: GuardInjector.name,
+              },
+            })
+
+            if (typeof wrappedGuard === 'function' && typeof guard === 'function')
+              this.resolveWrappedEnhancer(controller.host!, guard, wrappedGuard)
+
+            this.logger.log(`Mapped ${traceName}`)
+            return wrappedGuard
           })
-          this.logger.log(`Mapped ${traceName}`)
-          return guard
-        })
 
         if (guards.length > 0)
           Reflect.defineMetadata(GUARDS_METADATA, guards, controller.metatype)
@@ -47,10 +53,11 @@ export class GuardInjector extends BaseInjector {
         ) {
           const guards = this.getGuards(controller.metatype.prototype[key]).map(
             (guard) => {
-              const prototype = guard['prototype'] ?? guard
+              const wrappedGuard = this.wrapEnhancer(guard)
+              const prototype = typeof wrappedGuard === 'function' ? wrappedGuard['prototype'] : wrappedGuard
               if (this.isAffected(prototype.canActivate))
-                return guard
-              const traceName = `Guard -> ${prototype.constructor.name}`
+                return wrappedGuard
+              const traceName = `Guard -> ${controller.name}.${controller.metatype.prototype[key].name}.${prototype.constructor.name}`
               prototype.canActivate = this.wrap(
                 prototype.canActivate,
                 traceName,
@@ -65,8 +72,12 @@ export class GuardInjector extends BaseInjector {
                   },
                 },
               )
+
+              if (typeof wrappedGuard === 'function' && typeof guard === 'function')
+                this.resolveWrappedEnhancer(controller.host!, guard, wrappedGuard)
+
               this.logger.log(`Mapped ${traceName}`)
-              return guard
+              return wrappedGuard
             },
           )
 
