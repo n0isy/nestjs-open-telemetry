@@ -10,11 +10,11 @@ export enum AttributeNames {
   PROVIDER = 'nestjs.provider',
   PROVIDER_SCOPE = 'nestjs.provider.scope',
   PROVIDER_METHOD = 'nestjs.provider.method',
+  PARAM_INDEX = 'nestjs.provider.method.param.index',
   INJECTOR = 'nestjs.injector',
   CONTROLLER = 'nestjs.controller',
-  PIPE = 'nestjs.pipe',
-  INTERCEPTOR = 'nestjs.interceptor',
-  GUARD = 'nestjs.guard',
+  ENHANCER = 'nestjs.enhancer',
+  ENHANCER_TYPE = 'nestjs.enhancer.type',
   MIDDLEWARE = 'nestjs.middleware',
   SCOPE = 'nestjs.scope',
 }
@@ -28,5 +28,6 @@ export enum ProviderScope {
 export enum NestScope {
   CONTROLLER = 'CONTROLLER',
   METHOD = 'METHOD',
+  PARAM = 'PARAM',
   GLOBAL = 'GLOBAL',
 }
