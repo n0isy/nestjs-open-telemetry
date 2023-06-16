@@ -2,7 +2,7 @@ import { Injectable, PipeTransform, Type, assignMetadata } from '@nestjs/common'
 import { ModulesContainer } from '@nestjs/core'
 import { PIPES_METADATA, ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import { AttributeNames, NestScope } from '../../open-telemetry.enums'
+import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 import { EnhancerInjector, EnhancerType } from './enhancer.injector'
 
 @Injectable()
@@ -67,14 +67,9 @@ export class PipeInjector extends EnhancerInjector<PipeTransform> {
       traceName,
       {
         attributes: {
-          [AttributeNames.MODULE]: controller.host?.name,
-          [AttributeNames.CONTROLLER]: controller.name,
-          [AttributeNames.ENHANCER]: enhancerProto.constructor.name,
-          [AttributeNames.ENHANCER_TYPE]: this.enhancerType,
           [AttributeNames.PARAM_INDEX]: index,
-          [AttributeNames.SCOPE]: index != null ? NestScope.PARAM : NestScope.METHOD,
+          [AttributeNames.ENHANCER_SCOPE]: index != null ? EnhancerScope.PARAM : EnhancerScope.METHOD,
           [AttributeNames.PROVIDER_METHOD]: func.name,
-          [AttributeNames.INJECTOR]: PipeInjector.name,
         },
       })
   }

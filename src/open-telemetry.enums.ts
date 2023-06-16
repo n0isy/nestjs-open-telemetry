@@ -15,8 +15,8 @@ export enum AttributeNames {
   CONTROLLER = 'nestjs.controller',
   ENHANCER = 'nestjs.enhancer',
   ENHANCER_TYPE = 'nestjs.enhancer.type',
+  ENHANCER_SCOPE = 'nestjs.enhancer.scope',
   MIDDLEWARE = 'nestjs.middleware',
-  SCOPE = 'nestjs.scope',
 }
 
 export enum ProviderScope {
@@ -25,7 +25,7 @@ export enum ProviderScope {
   DEFAULT = 'DEFAULT',
 }
 
-export enum NestScope {
+export enum EnhancerScope {
   CONTROLLER = 'CONTROLLER',
   METHOD = 'METHOD',
   PARAM = 'PARAM',

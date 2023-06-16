@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common/constants'
 import { SpanOptions } from '@opentelemetry/api'
 import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import { AttributeNames, NestScope } from '../../open-telemetry.enums'
+import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
 export enum EnhancerType {
@@ -102,7 +102,7 @@ export abstract class EnhancerInjector<
             attributes: {
               [AttributeNames.ENHANCER]: provider.metatype.name,
               [AttributeNames.ENHANCER_TYPE]: this.enhancerType,
-              [AttributeNames.SCOPE]: NestScope.GLOBAL,
+              [AttributeNames.ENHANCER_SCOPE]: EnhancerScope.GLOBAL,
               [AttributeNames.INJECTOR]: this.constructor.name,
             },
           },
@@ -130,12 +130,7 @@ export abstract class EnhancerInjector<
               traceName,
               {
                 attributes: {
-                  [AttributeNames.MODULE]: controller.host?.name,
-                  [AttributeNames.CONTROLLER]: controller.name,
-                  [AttributeNames.ENHANCER]: prototype.constructor.name,
-                  [AttributeNames.ENHANCER_TYPE]: this.enhancerType,
-                  [AttributeNames.SCOPE]: NestScope.CONTROLLER,
-                  [AttributeNames.INJECTOR]: this.constructor.name,
+                  [AttributeNames.ENHANCER_SCOPE]: EnhancerScope.CONTROLLER,
                 },
               },
             )
@@ -165,13 +160,8 @@ export abstract class EnhancerInjector<
                 traceName,
                 {
                   attributes: {
-                    [AttributeNames.MODULE]: controller.host?.name,
-                    [AttributeNames.CONTROLLER]: controller.name,
-                    [AttributeNames.ENHANCER]: enhancerProto.constructor.name,
-                    [AttributeNames.ENHANCER_TYPE]: this.enhancerType,
-                    [AttributeNames.SCOPE]: NestScope.METHOD,
+                    [AttributeNames.ENHANCER_SCOPE]: EnhancerScope.METHOD,
                     [AttributeNames.PROVIDER_METHOD]: controllerProto[key].name,
-                    [AttributeNames.INJECTOR]: this.constructor.name,
                   },
                 },
               )
@@ -223,7 +213,17 @@ export abstract class EnhancerInjector<
     enhancerProto[this.methodKey] = this.wrap(
       enhancerProto[this.methodKey],
       traceName,
-      spanOptions,
+      {
+        ...spanOptions,
+        attributes: {
+          [AttributeNames.MODULE]: controller.host?.name,
+          [AttributeNames.CONTROLLER]: controller.name,
+          [AttributeNames.ENHANCER]: enhancerProto.constructor.name,
+          [AttributeNames.ENHANCER_TYPE]: this.enhancerType,
+          [AttributeNames.INJECTOR]: this.constructor.name,
+          ...spanOptions.attributes,
+        },
+      },
     )
 
     if (typeof wrappedEnhancer === 'function' && typeof enhancer === 'function')
