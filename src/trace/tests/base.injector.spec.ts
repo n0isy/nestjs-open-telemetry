@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing'
-import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
+import { InMemorySpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Controller, Get, Injectable } from '@nestjs/common'
 import request from 'supertest'
 import { Trace } from '../decorators'
@@ -7,17 +7,15 @@ import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { ControllerInjector, DecoratorInjector } from '../injectors'
 
 describe('Base Trace Injector Test', () => {
-  const exporter = new NoopSpanProcessor()
-  const exporterSpy = jest.spyOn(exporter, 'onStart')
+  const exporter = new InMemorySpanExporter()
 
   const sdkModule = OpenTelemetryModule.forRoot({
-    spanProcessor: exporter,
+    spanProcessor: new SimpleSpanProcessor(exporter),
     autoInjectors: [DecoratorInjector, ControllerInjector],
   })
 
   beforeEach(() => {
-    exporterSpy.mockClear()
-    exporterSpy.mockReset()
+    exporter.reset()
   })
 
   it('should create spans that inherit the ids of their parents', async () => {
@@ -54,7 +52,9 @@ describe('Base Trace Injector Test', () => {
     await request(app.getHttpServer()).get('/hello').send().expect(200)
 
     // then
-    const [[parent], [childOfParent], [childOfChild]] = exporterSpy.mock.calls
+    const spans = exporter.getFinishedSpans()
+    const [childOfChild, childOfParent, parent] = spans
+    expect(spans.length).toStrictEqual(3)
     expect(parent.parentSpanId).toBeUndefined()
     expect(childOfParent.parentSpanId).toBe(parent.spanContext().spanId)
     expect(childOfChild.parentSpanId).toBe(childOfParent.spanContext().spanId)

@@ -3,11 +3,14 @@ import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Controller, Get, Param, PipeTransform, UsePipes } from '@nestjs/common'
 import { APP_PIPE } from '@nestjs/core'
 import request from 'supertest'
-import waitForExpect from 'wait-for-expect'
 import { ControllerInjector, PipeInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
+import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 
 describe('Tracing Pipe Injector Test', () => {
+  class TestPipe implements PipeTransform {
+    async transform(v: any) { return v }
+  }
   const exporter = new NoopSpanProcessor()
   const exporterSpy = jest.spyOn(exporter, 'onStart')
 
@@ -21,52 +24,12 @@ describe('Tracing Pipe Injector Test', () => {
     exporterSpy.mockReset()
   })
 
-  it('should trace global pipe', async () => {
-    // given
-    class HelloPipe implements PipeTransform {
-      async transform() {}
-    }
-    const context = await Test.createTestingModule({
-      imports: [sdkModule],
-      providers: [{ provide: APP_PIPE, useClass: HelloPipe }],
-    }).compile()
-    const app = context.createNestApplication()
-    await app.init()
-    const injector = app.get(PipeInjector)
-
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
-    const providers = injector.getProviders()
-
-    // when
-    for await (const provider of providers) {
-      if (
-        typeof provider.token === 'string'
-        && provider.token.includes(APP_PIPE)
-      )
-        await provider.metatype.prototype.transform(1)
-    }
-
-    // then
-    expect(exporterSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'Pipe -> Global -> HelloPipe' }),
-      expect.any(Object),
-    )
-
-    await app.close()
-  })
-
-  it('should trace controller pipe', async () => {
-    // given
-    class HelloPipe implements PipeTransform {
-      async transform() {}
-    }
-
+  it('should trace enhanced controller', async () => {
+    @UsePipes(TestPipe)
     @Controller('hello')
     class HelloController {
       @Get('/:id')
-      @UsePipes(HelloPipe)
-      async hi(@Param('id') _id: string) {}
+      hi(@Param('id') _id: string) { }
     }
     const context = await Test.createTestingModule({
       imports: [sdkModule],
@@ -79,28 +42,20 @@ describe('Tracing Pipe Injector Test', () => {
     await request(app.getHttpServer()).get('/hello/1').send().expect(200)
 
     // then
-    await waitForExpect(() =>
-      expect(exporterSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Pipe -> HelloController.hi.HelloPipe',
-        }),
-        expect.any(Object),
-      ),
-    )
+    const spans = exporterSpy.mock.calls.map(call => call[0])
+    expect(spans.length).toStrictEqual(2)
+    expect(spans[0].name).toStrictEqual('Pipe -> HelloController.TestPipe')
+    expect(spans[1].name).toStrictEqual('Controller -> HelloController.hi')
 
     await app.close()
   })
 
-  it('should trace param pipe', async () => {
-    // given
-    class HelloPipe implements PipeTransform {
-      async transform(v: any) { return v }
-    }
-
+  it('should trace enhanced method and param', async () => {
     @Controller('hello')
     class HelloController {
       @Get('/:id')
-      async hi(@Param('id', HelloPipe) _id: string) {}
+      @UsePipes(TestPipe)
+      hi(@Param('id', TestPipe) _id: string) { }
     }
     const context = await Test.createTestingModule({
       imports: [sdkModule],
@@ -113,14 +68,45 @@ describe('Tracing Pipe Injector Test', () => {
     await request(app.getHttpServer()).get('/hello/1').send().expect(200)
 
     // then
-    await waitForExpect(() =>
-      expect(exporterSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          name: 'Pipe -> HelloController.hi.0.HelloPipe',
-        }),
-        expect.any(Object),
-      ),
-    )
+    const spans = exporterSpy.mock.calls.map(call => call[0])
+    expect(spans.length).toStrictEqual(3)
+    expect(spans[0].name).toStrictEqual('Pipe -> HelloController.hi.TestPipe')
+    expect(spans[1].name).toStrictEqual('Pipe -> HelloController.hi.0.TestPipe')
+    expect(spans[2].name).toStrictEqual('Controller -> HelloController.hi')
+
+    expect(spans[1].attributes[AttributeNames.ENHANCER_SCOPE]).toStrictEqual(EnhancerScope.PARAM)
+    expect(spans[1].attributes[AttributeNames.PARAM_INDEX]).toStrictEqual(0)
+
+    await app.close()
+  })
+
+  it('should trace global enhancer', async () => {
+    @Controller('hello')
+    class HelloController {
+      @Get('/:id')
+      hi(@Param('id') _id: string) {}
+    }
+    const context = await Test.createTestingModule({
+      imports: [sdkModule],
+      controllers: [HelloController],
+      providers: [
+        {
+          provide: APP_PIPE,
+          useClass: TestPipe,
+        },
+      ],
+    }).compile()
+    const app = context.createNestApplication()
+    await app.init()
+
+    // when
+    await request(app.getHttpServer()).get('/hello/1').send().expect(200)
+
+    // then
+    const spans = exporterSpy.mock.calls.map(call => call[0])
+    expect(spans.length).toStrictEqual(2)
+    expect(spans[0].name).toStrictEqual('Pipe -> Global -> TestPipe')
+    expect(spans[1].name).toStrictEqual('Controller -> HelloController.hi')
 
     await app.close()
   })
