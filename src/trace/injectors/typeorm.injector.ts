@@ -25,7 +25,7 @@ export interface TypeormInjectorOptions {
   collectParameters?: boolean
 }
 
-const DB_STATEMENT_PARAMETERS = 'db.statement.parameters'
+export const DB_STATEMENT_PARAMETERS = 'db.statement.parameters'
 
 type EntityManagerMethods = keyof EntityManager
 const usingEntityPersistExecutor: EntityManagerMethods[] = ['save', 'remove', 'softRemove', 'recover']
@@ -119,7 +119,7 @@ function getDefaultPort(type: DatabaseType): number | undefined {
   }
 }
 
-function getConnectionAttributes(options: DataSourceOptions): Attributes {
+export function getConnectionAttributes(options: DataSourceOptions): Attributes {
   if (sqliteFamily.includes(options.type)) {
     return {
       [SemanticAttributes.DB_SYSTEM]: DbSystemValues.SQLITE,
@@ -141,7 +141,7 @@ function getConnectionAttributes(options: DataSourceOptions): Attributes {
     }
     return {
       [SemanticAttributes.DB_SYSTEM]: getDbSystemValue(options),
-      [SemanticAttributes.DB_CONNECTION_STRING]: `${options.type}://${host}:${port}${database ? `/${database}` : ''}`,
+      [SemanticAttributes.DB_CONNECTION_STRING]: `${options.type}://${user ? `${user}@` : ''}${host}:${port}${database ? `/${database}` : ''}`,
       [SemanticAttributes.NET_PEER_NAME]: host,
       [SemanticAttributes.NET_PEER_PORT]: port,
       [SemanticAttributes.DB_USER]: user,
