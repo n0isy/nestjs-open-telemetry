@@ -207,8 +207,6 @@ export abstract class EnhancerInjector<
   ): Type<T> | T {
     const wrappedEnhancer = this.wrapEnhancer(enhancer)
     const enhancerProto = typeof wrappedEnhancer === 'function' ? wrappedEnhancer['prototype'] : wrappedEnhancer
-    if (this.isAffected(enhancerProto[this.methodKey]))
-      return wrappedEnhancer
 
     enhancerProto[this.methodKey] = this.wrap(
       enhancerProto[this.methodKey],

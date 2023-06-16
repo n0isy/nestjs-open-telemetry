@@ -1,6 +1,6 @@
 import { Injectable, PipeTransform, Type, assignMetadata } from '@nestjs/common'
 import { ModulesContainer } from '@nestjs/core'
-import { PIPES_METADATA, ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
+import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 import { EnhancerInjector, EnhancerType } from './enhancer.injector'
@@ -12,6 +12,7 @@ export class PipeInjector extends EnhancerInjector<PipeTransform> {
   }
 
   protected override injectControllers(): void {
+    super.injectControllers()
     const controllers = this.getControllers()
 
     for (const controller of controllers) {
@@ -21,32 +22,14 @@ export class PipeInjector extends EnhancerInjector<PipeTransform> {
       )
 
       for (const key of keys) {
-        if (this.isPath(prototype[key]) || this.isPatten(prototype[key])) {
-          const pipes = this.getEnhancers(prototype[key]).map(
-            pipe =>
-              this.wrapPipe(
-                pipe,
-                controller,
-                prototype[key],
-              ),
-          )
-          if (pipes.length > 0) {
-            Reflect.defineMetadata(
-              PIPES_METADATA,
-              pipes,
-              prototype[key],
-            )
-          }
+        if (this.isPath(prototype[key]) || this.isPatten(prototype[key]))
           this.wrapParamsPipes(controller, prototype, key)
-        }
       }
     }
   }
 
   private wrapParamsPipes(controller: InstanceWrapper, prototype: object, key: string): void {
-    const params = Reflect.getMetadata(ROUTE_ARGS_METADATA, prototype.constructor, key) as ReturnType<typeof assignMetadata>
-    if (!params)
-      return
+    const params: ReturnType<typeof assignMetadata> = Reflect.getMetadata(ROUTE_ARGS_METADATA, prototype.constructor, key) ?? {}
     for (const param of Object.values(params))
       param.pipes = param.pipes.map(pipe => this.wrapPipe(pipe, controller, (prototype as any)[key], param.index))
     Reflect.defineMetadata(ROUTE_ARGS_METADATA, params, prototype.constructor, key)

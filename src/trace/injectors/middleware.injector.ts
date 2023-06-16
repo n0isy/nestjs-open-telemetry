@@ -1,5 +1,5 @@
-import { Injectable, Logger, Type } from '@nestjs/common'
-import { MiddlewareModule } from '@nestjs/core/middleware/middleware-module'
+import { Injectable, Logger } from '@nestjs/common'
+import { Injector } from '@nestjs/core/injector/injector'
 import { AttributeNames } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
@@ -7,16 +7,20 @@ import { BaseInjector } from './base.injector'
 export class MiddlewareInjector extends BaseInjector {
   private readonly logger = new Logger(MiddlewareInjector.name)
   public inject(): void {
-    const metatype = MiddlewareModule as Type
-    const originMethod = metatype.prototype.createProxy
+    const metatype = Injector
+    const originMethod = metatype.prototype.loadMiddleware
     const logger = this.logger
-    const wrap = this.wrap.bind(this)
-    metatype.prototype.createProxy = function createProxy(...args: any[]) {
-      const instance = args[0]
-      const prototype = Object.getPrototypeOf(instance)
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this
+    metatype.prototype.loadMiddleware = function loadMiddleware(...args: Parameters<Injector['loadMiddleware']>) {
+      const instanceWrapper = args[0]
+      const prototype = instanceWrapper.metatype.prototype
       if (prototype.use) {
+        if (self.isAffected(prototype.use))
+          return originMethod.apply(this, args)
+
         const traceName = `Middleware -> ${prototype.constructor.name}`
-        prototype.use = wrap(prototype.use, traceName, {
+        prototype.use = self.wrap(prototype.use, traceName, {
           attributes: {
             [AttributeNames.MIDDLEWARE]: prototype.constructor.name,
             [AttributeNames.INJECTOR]: MiddlewareInjector.name,

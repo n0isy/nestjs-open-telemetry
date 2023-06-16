@@ -41,34 +41,31 @@ export class ProviderInjector extends BaseInjector {
         continue
       if (this.isExcluded(provider))
         continue
-      if (this.isAffected(provider.metatype))
-        continue
       const prototype = provider.metatype.prototype
       const keys = this.metadataScanner.getAllMethodNames(
         prototype,
       )
 
       for (const key of keys) {
-        if (!this.isAffected(prototype[key])) {
-          const name = `Provider -> ${this.getName(provider, prototype[key])}`
-          const method = this.wrap(
-            prototype[key],
-            name,
-            {
-              attributes: {
-                [AttributeNames.MODULE]: provider.host?.name,
-                [AttributeNames.PROVIDER]: provider.name,
-                [AttributeNames.PROVIDER_SCOPE]: provider.scope != null ? Scope[provider.scope] : ProviderScope.DEFAULT,
-                [AttributeNames.PROVIDER_METHOD]: prototype[key].name,
-                [AttributeNames.INJECTOR]: ProviderInjector.name,
-              },
-            },
-            true,
-          )
+        if (this.isAffected(prototype[key]))
+          continue
 
-          prototype[key] = method
-          this.logger.log(`Mapped ${name}`)
-        }
+        const name = `Provider -> ${this.getName(provider, prototype[key])}`
+        prototype[key] = this.wrap(
+          prototype[key],
+          name,
+          {
+            attributes: {
+              [AttributeNames.MODULE]: provider.host?.name,
+              [AttributeNames.PROVIDER]: provider.name,
+              [AttributeNames.PROVIDER_SCOPE]: provider.scope != null ? Scope[provider.scope] : ProviderScope.DEFAULT,
+              [AttributeNames.PROVIDER_METHOD]: prototype[key].name,
+              [AttributeNames.INJECTOR]: ProviderInjector.name,
+            },
+          },
+          true,
+        )
+        this.logger.log(`Mapped ${name}`)
       }
     }
   }

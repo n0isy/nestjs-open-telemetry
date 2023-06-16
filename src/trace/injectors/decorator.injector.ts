@@ -94,6 +94,6 @@ export class DecoratorInjector extends BaseInjector {
   }
 
   private getTraceOptions(func: Function): TraceOptions {
-    return Reflect.getMetadata(TRACE_METADATA, func)
+    return Reflect.getMetadata(TRACE_METADATA, func) ?? {}
   }
 }

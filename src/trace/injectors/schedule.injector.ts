@@ -69,7 +69,7 @@ export class ScheduleInjector extends BaseInjector {
   }
 
   private getName(provider: InstanceWrapper, func: Function): string {
-    const schedulerType = Reflect.getMetadata(
+    const schedulerType: SchedulerType = Reflect.getMetadata(
       ScheduleInjector.SCHEDULER_TYPE,
       func,
     )
@@ -77,17 +77,14 @@ export class ScheduleInjector extends BaseInjector {
       ScheduleInjector.SCHEDULER_NAME,
       func,
     )
-
-    if (SchedulerType.CRON === schedulerType)
-      return `Scheduler -> Cron -> ${provider.name}.${name || func.name}`
-
-    if (SchedulerType.TIMEOUT === schedulerType)
-      return `Scheduler -> Timeout -> ${provider.name}.${name || func.name}`
-
-    if (SchedulerType.INTERVAL === schedulerType)
-      return `Scheduler -> Interval -> ${provider.name}.${name || func.name}`
-
-    return `Scheduler -> ${provider.name}.${func.name}`
+    switch (schedulerType) {
+      case SchedulerType.CRON:
+        return `Scheduler -> Cron -> ${provider.name}.${name || func.name}`
+      case SchedulerType.TIMEOUT:
+        return `Scheduler -> Timeout -> ${provider.name}.${name || func.name}`
+      case SchedulerType.INTERVAL:
+        return `Scheduler -> Interval -> ${provider.name}.${name || func.name}`
+    }
   }
 
   private getAttributes(func: Function): Attributes {
