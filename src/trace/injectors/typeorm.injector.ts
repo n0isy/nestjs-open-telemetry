@@ -16,7 +16,7 @@ import { SpanKind, context, trace } from '@opentelemetry/api'
 import { Span } from '@opentelemetry/sdk-trace-base'
 import { ModulesContainer } from '@nestjs/core'
 import fg from 'fast-glob'
-import { OpenTelemetryConstants } from '../../open-telemetry.enums'
+import { SDK_CONFIG } from '../../open-telemetry.enums'
 import { OpenTelemetryModuleConfig } from '../../open-telemetry.interface'
 import { BaseInjector } from './base.injector'
 
@@ -170,7 +170,7 @@ export class TypeormInjector extends BaseInjector {
   private readonly config: TypeormInjectorOptions
   constructor(
     modulesContainer: ModulesContainer,
-    @Inject(OpenTelemetryConstants.SDK_CONFIG)
+    @Inject(SDK_CONFIG)
       config: OpenTelemetryModuleConfig,
   ) {
     super(modulesContainer)

@@ -5,7 +5,7 @@ import { PATH_METADATA } from '@nestjs/common/constants'
 import { Injectable as InjectableDec } from '@nestjs/common'
 import { INVALID_SPAN_CONTEXT, Span, SpanOptions, SpanStatusCode, context, trace } from '@opentelemetry/api'
 import type { Attributes } from '@opentelemetry/api'
-import { OpenTelemetryConstants } from '../../open-telemetry.enums'
+import { TRACE_METADATA, TRACE_METADATA_ACTIVE } from '../../open-telemetry.enums'
 import type { Injector } from './injector'
 
 export type DynamicAttributesHook = (option: { args: unknown[]; thisArg: unknown; parentSpan?: Span }) => Attributes
@@ -44,11 +44,11 @@ export abstract class BaseInjector implements Injector {
   }
 
   protected isAffected(target: object): boolean {
-    return Reflect.hasMetadata(OpenTelemetryConstants.TRACE_METADATA_ACTIVE, target)
+    return Reflect.hasMetadata(TRACE_METADATA_ACTIVE, target)
   }
 
   protected isDecorated(target: object): boolean {
-    return Reflect.hasMetadata(OpenTelemetryConstants.TRACE_METADATA, target)
+    return Reflect.hasMetadata(TRACE_METADATA, target)
   }
 
   protected reDecorate(source: object, destination: Object): void {
@@ -104,7 +104,7 @@ export abstract class BaseInjector implements Injector {
       },
     }[func.name]
 
-    Reflect.defineMetadata(OpenTelemetryConstants.TRACE_METADATA, {
+    Reflect.defineMetadata(TRACE_METADATA, {
       ...spanOptions,
       name: traceName,
     }, method)
@@ -122,7 +122,7 @@ export abstract class BaseInjector implements Injector {
   }
 
   protected affect(target: object): void {
-    Reflect.defineMetadata(OpenTelemetryConstants.TRACE_METADATA_ACTIVE, true, target)
+    Reflect.defineMetadata(TRACE_METADATA_ACTIVE, true, target)
   }
 
   public abstract inject(): void

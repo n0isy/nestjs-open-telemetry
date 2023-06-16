@@ -9,7 +9,7 @@ import {
 } from './open-telemetry.constants'
 import type { Injector } from './trace/injectors'
 import type { OpenTelemetryModuleAsyncOption, OpenTelemetryModuleConfig } from './open-telemetry.interface'
-import { OpenTelemetryConstants } from './open-telemetry.enums'
+import { SDK_CONFIG, SDK_INJECTORS } from './open-telemetry.enums'
 
 export class OpenTelemetryModule {
   public static forRoot(
@@ -31,7 +31,7 @@ export class OpenTelemetryModule {
         this.buildProvider(config),
         this.buildInjectors(config),
         {
-          provide: OpenTelemetryConstants.SDK_CONFIG,
+          provide: SDK_CONFIG,
           useValue: config,
         },
       ],
@@ -55,7 +55,7 @@ export class OpenTelemetryModule {
   ): FactoryProvider {
     const injectors = configuration?.autoInjectors ?? []
     return {
-      provide: OpenTelemetryConstants.SDK_INJECTORS,
+      provide: SDK_INJECTORS,
       useFactory: (...injectors: Injector[]) => {
         for (const injector of injectors) {
           if (injector['inject'])
@@ -80,7 +80,7 @@ export class OpenTelemetryModule {
         this.buildAsyncProvider(),
         this.buildAsyncInjectors(),
         {
-          provide: OpenTelemetryConstants.SDK_CONFIG,
+          provide: SDK_CONFIG,
           useFactory: configuration.useFactory,
           inject: configuration.inject,
         },
@@ -102,13 +102,13 @@ export class OpenTelemetryModule {
         sdk.start()
         return sdk
       },
-      inject: [OpenTelemetryConstants.SDK_CONFIG],
+      inject: [SDK_CONFIG],
     }
   }
 
   private static buildAsyncInjectors(): FactoryProvider {
     return {
-      provide: OpenTelemetryConstants.SDK_INJECTORS,
+      provide: SDK_INJECTORS,
       useFactory: async (config: OpenTelemetryModuleConfig, moduleRef: ModuleRef) => {
         config = { ...defaultConfig, ...config }
         const injectors
@@ -123,7 +123,7 @@ export class OpenTelemetryModule {
 
         return {}
       },
-      inject: [OpenTelemetryConstants.SDK_CONFIG, ModuleRef],
+      inject: [SDK_CONFIG, ModuleRef],
     }
   }
 }

@@ -5,7 +5,7 @@ import request from 'supertest'
 import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { ControllerInjector, DecoratorInjector } from '../injectors'
-import { OpenTelemetryConstants } from '../../open-telemetry.enums'
+import { TRACE_METADATA_ACTIVE } from '../../open-telemetry.enums'
 
 describe('Tracing Decorator Injector Test', () => {
   const exporter = new NoopSpanProcessor()
@@ -115,7 +115,7 @@ describe('Tracing Decorator Injector Test', () => {
       hi() {}
     }
     Reflect.defineMetadata(
-      OpenTelemetryConstants.TRACE_METADATA_ACTIVE,
+      TRACE_METADATA_ACTIVE,
       1,
       HelloService.prototype.hi,
     )

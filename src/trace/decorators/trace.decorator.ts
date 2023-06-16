@@ -1,10 +1,10 @@
-import { CustomDecorator, Logger, SetMetadata } from '@nestjs/common'
+import { Logger, SetMetadata } from '@nestjs/common'
 import { MetadataScanner } from '@nestjs/core'
 import type { SpanKind } from '@opentelemetry/api/build/src/trace/span_kind'
 import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
 import { BaseInjector } from '../injectors'
 
-import { OpenTelemetryConstants } from '../../open-telemetry.enums'
+import { TRACE_METADATA } from '../../open-telemetry.enums'
 
 export interface TraceOptions {
   /**
@@ -19,14 +19,14 @@ export interface TraceOptions {
   name?: string
 }
 
-export function Trace<T extends TraceOptions | undefined | string>(optionsOrName?: T): (keyof T) extends never ? CustomDecorator : MethodDecorator {
+export function Trace<T extends TraceOptions | undefined | string>(optionsOrName?: T): (keyof T) extends never ? MethodDecorator & ClassDecorator : MethodDecorator {
   const options = typeof optionsOrName === 'string' ? { name: optionsOrName } : optionsOrName ?? {}
-  return SetMetadata(OpenTelemetryConstants.TRACE_METADATA, options)
+  return SetMetadata(TRACE_METADATA, options)
 }
 
 const metadataScanner = new MetadataScanner()
 const logger = new Logger('TracePlain')
-export function TracePlain<T extends TraceOptions | undefined | string>(optionsOrName?: T): MethodDecorator & ClassDecorator {
+export function TracePlain<T extends TraceOptions | undefined | string>(optionsOrName?: T): (keyof T) extends never ? MethodDecorator & ClassDecorator : MethodDecorator {
   const options: TraceOptions = typeof optionsOrName === 'string' ? { name: optionsOrName } : optionsOrName ?? {}
   return (target: Function | object, propertyKey?: any, descriptor?: any) => {
     const prototype = typeof target === 'function' ? target.prototype : target
