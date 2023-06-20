@@ -1,10 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { AsyncLocalStorageContextManager } from '@opentelemetry/context-async-hooks'
-import { Resource, hostDetectorSync } from '@opentelemetry/resources'
+import { Resource, envDetector, hostDetectorSync } from '@opentelemetry/resources'
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 import { containerDetector } from '@opentelemetry/resource-detector-container'
-import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { CompositePropagator, W3CTraceContextPropagator } from '@opentelemetry/core'
 import {
   ControllerInjector, DecoratorInjector,
@@ -18,6 +17,7 @@ import {
   TypeormInjector,
 } from './trace/injectors'
 import { OpenTelemetryModuleConfig } from './open-telemetry.interface'
+import { ExceptionFilterInjector } from './trace/injectors/exception-filter.injector'
 
 const version: string | undefined = (() => {
   try {
@@ -35,6 +35,7 @@ export const defaultConfig: OpenTelemetryModuleConfig = {
     GuardInjector,
     PipeInjector,
     InterceptorInjector,
+    ExceptionFilterInjector,
     TypeormInjector,
     LoggerInjector,
     ProviderInjector,
@@ -45,8 +46,7 @@ export const defaultConfig: OpenTelemetryModuleConfig = {
   resource: new Resource({
     [SemanticResourceAttributes.SERVICE_VERSION]: version ?? 'unknown',
   }),
-  resourceDetectors: [containerDetector, hostDetectorSync],
-  spanProcessor: new NoopSpanProcessor(),
+  resourceDetectors: [containerDetector, hostDetectorSync, envDetector],
   textMapPropagator: new CompositePropagator({
     propagators: [
       new W3CTraceContextPropagator(),
