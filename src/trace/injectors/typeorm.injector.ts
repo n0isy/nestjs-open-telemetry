@@ -15,7 +15,6 @@ import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
 import { SpanKind, context, trace } from '@opentelemetry/api'
 import { Span } from '@opentelemetry/sdk-trace-base'
 import { ModulesContainer } from '@nestjs/core'
-import fg from 'fast-glob'
 import { SDK_CONFIG } from '../../open-telemetry.enums'
 import { OpenTelemetryModuleConfig } from '../../open-telemetry.interface'
 import { BaseInjector } from './base.injector'
@@ -208,7 +207,7 @@ export class TypeormInjector extends BaseInjector {
                 target = entityOrTarget[0].constructor
               else if (
                 typeof entityOrTarget === 'function'
-                || (entityOrTarget as { '@instanceof': Symbol })['@instanceof'] === Symbol.for('EntitySchema')
+                || (entityOrTarget as { '@instanceof': symbol })['@instanceof'] === Symbol.for('EntitySchema')
               )
                 target = entityOrTarget as EntityTarget<any>
               else
@@ -231,7 +230,7 @@ export class TypeormInjector extends BaseInjector {
   }
 
   private injectQueryRunner(): void {
-    fg.sync('typeorm/driver/*/*.js', { cwd: 'node_modules' })
+    this.loadFastGlob()?.sync('typeorm/driver/*/*.js', { cwd: 'node_modules' })
       .filter(f => f.includes('QueryRunner'))
       .forEach((filePath) => {
         // eslint-disable-next-line @typescript-eslint/no-var-requires,@typescript-eslint/no-require-imports
@@ -284,6 +283,17 @@ export class TypeormInjector extends BaseInjector {
     }
     catch (e) {
       this.logger.warn('typeorm is not installed, TypeormInjector will be disabled.')
+      return void 0
+    }
+  }
+
+  private loadFastGlob(): typeof import('fast-glob') | undefined {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('fast-glob')
+    }
+    catch (e) {
+      this.logger.warn('fast-glob is not installed, TypeormInjector will be disabled.')
       return void 0
     }
   }
