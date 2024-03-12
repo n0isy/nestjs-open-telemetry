@@ -1,14 +1,16 @@
-import { CanActivate, ExceptionFilter, Injectable, Logger, NestInterceptor, PipeTransform, Type } from '@nestjs/common'
-import { Module } from '@nestjs/core/injector/module'
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, ModuleRef, ModulesContainer } from '@nestjs/core'
+import type { CanActivate, ExceptionFilter, NestInterceptor, PipeTransform, Type } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
+import type { Module } from '@nestjs/core/injector/module'
+import type { ModulesContainer } from '@nestjs/core'
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, ModuleRef } from '@nestjs/core'
 import {
   EXCEPTION_FILTERS_METADATA,
   GUARDS_METADATA,
   INTERCEPTORS_METADATA,
   PIPES_METADATA,
 } from '@nestjs/common/constants'
-import { SpanOptions } from '@opentelemetry/api'
-import { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
+import type { SpanOptions } from '@opentelemetry/api'
+import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
@@ -235,7 +237,10 @@ export abstract class EnhancerInjector<
     | CanActivate
     | NestInterceptor
     | ExceptionFilter,
-  >(module: Module, enhancer: Type<T>, wrappedEnhancer: Type<T>): void {
+  >(module: Module,
+    enhancer: Type<T>,
+    wrappedEnhancer: Type<T>,
+  ): void {
     const instanceWrapper = module.injectables.get(enhancer)
     module.addCustomClass(
       {

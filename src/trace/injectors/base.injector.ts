@@ -1,14 +1,15 @@
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import { MetadataScanner, ModulesContainer } from '@nestjs/core'
+import type { ModulesContainer } from '@nestjs/core'
+import { MetadataScanner } from '@nestjs/core'
 import type { Controller, Injectable } from '@nestjs/common/interfaces'
 import { PATH_METADATA } from '@nestjs/common/constants'
 import { Injectable as InjectableDec } from '@nestjs/common'
-import { INVALID_SPAN_CONTEXT, Span, SpanOptions, SpanStatusCode, context, trace } from '@opentelemetry/api'
-import type { Attributes } from '@opentelemetry/api'
+import { INVALID_SPAN_CONTEXT, SpanStatusCode, context, trace } from '@opentelemetry/api'
+import type { Attributes, Span, SpanOptions } from '@opentelemetry/api'
 import { TRACE_METADATA, TRACE_METADATA_ACTIVE } from '../../open-telemetry.enums'
 import type { Injector } from './injector'
 
-export type DynamicAttributesHook = (option: { args: unknown[]; thisArg: unknown; parentSpan?: Span }) => Attributes
+export type DynamicAttributesHook = (option: { args: unknown[], thisArg: unknown, parentSpan?: Span }) => Attributes
 
 @InjectableDec()
 export abstract class BaseInjector implements Injector {
@@ -51,7 +52,7 @@ export abstract class BaseInjector implements Injector {
     return Reflect.hasMetadata(TRACE_METADATA, target)
   }
 
-  protected reDecorate(source: object, destination: Object): void {
+  protected reDecorate(source: object, destination: NonNullable<unknown>): void {
     const keys = Reflect.getMetadataKeys(source)
 
     for (const key of keys) {

@@ -1,12 +1,15 @@
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import {
-  Controller,
-  Get, Injectable,
+import type {
   MiddlewareConsumer,
-  Module,
   NestMiddleware,
   NestModule,
+} from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  Injectable,
+  Module,
 } from '@nestjs/common'
 import request from 'supertest'
 import {
@@ -16,12 +19,12 @@ import {
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { TracePlain } from '../decorators'
 
-describe('Tracing Middleware Injector Test', () => {
+describe('tracing middleware injector test', () => {
   const exporter = new NoopSpanProcessor()
   const exporterSpy = jest.spyOn(exporter, 'onStart')
 
   const sdkModule = OpenTelemetryModule.forRoot({
-    spanProcessor: exporter,
+    spanProcessors: [exporter],
     autoInjectors: [MiddlewareInjector, ControllerInjector],
   })
 

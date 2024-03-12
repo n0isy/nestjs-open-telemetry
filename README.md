@@ -27,8 +27,7 @@ OpenTelemetry Metrics currently experimental. So, this library doesn't support m
 
 Only supports NestJS 9.x
 
-
-### Installation 
+### Installation
 ``` bash
 npm install @easyv/nestjs-opentelemetry --save
 ```
@@ -36,7 +35,7 @@ npm install @easyv/nestjs-opentelemetry --save
 ### Configuration
 This is a basic configuration without any trace and metric exporter, but includes default metrics and injectors
 ```ts
-import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
+import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry'
 
 @Module({
   imports: [
@@ -50,8 +49,8 @@ export class AppModule {}
 
 Async configuration example (Not recommended, May cause auto instrumentations to not work)
 ```ts
-import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 
 @Module({
   imports: [
@@ -79,9 +78,9 @@ export class AppModule {}
 ### Distributed Tracing
 Simple setup with Zipkin exporter, including with default trace instrumentations.
 ```ts
-import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry';
+import { OpenTelemetryModule } from '@easyv/nestjs-opentelemetry'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base'
 
 @Module({
   imports: [
@@ -105,18 +104,18 @@ List of supported official exporters [here](https://opentelemetry.io/docs/js/exp
 #### Trace Decorators
 This library supports auto instrumentations for Nestjs layers, but sometimes you need to define custom span for specific method blocks like providers methods. In this case `@Trace` and `@TracePlain` decorator will help you.
 ```ts
-import { Injectable } from '@nestjs/common';
-import { Trace } from '@easyv/nestjs-opentelemetry';
+import { Injectable } from '@nestjs/common'
+import { Trace } from '@easyv/nestjs-opentelemetry'
 
 @Injectable()
 export class AppService {
   @Trace()
   getHello(): string {
-    return 'Hello World!';
+    return 'Hello World!'
   }
 }
 ```
-Also `@Trace` decorator takes `name` field as a parameter 
+Also `@Trace` decorator takes `name` field as a parameter
 ```ts
 @Trace({ name: 'hello' })
 ```
@@ -125,19 +124,19 @@ Also `@Trace` decorator takes `name` field as a parameter
 #### Trace Providers
 In an advanced usage case, you need to access the native OpenTelemetry Trace provider to access them from Nestjs application context.
 ```ts
-import { Injectable } from '@nestjs/common';
-import { Tracer } from '@opentelemetry/sdk-trace-base';
+import { Injectable } from '@nestjs/common'
+import { Tracer } from '@opentelemetry/sdk-trace-base'
 
 @Injectable()
 export class AppService {
   constructor() {}
 
   getHello(): string {
-    const span = trace.getTracer('default').startSpan('important_section_start');
+    const span = trace.getTracer('default').startSpan('important_section_start')
     // do something important
-    span.setAttributes({ userId: 1150 });
-    span.end();
-    return 'Hello World!';
+    span.setAttributes({ userId: 1150 })
+    span.end()
+    return 'Hello World!'
   }
 }
 ```
@@ -145,18 +144,18 @@ export class AppService {
 #### Auto Trace Instrumentations
 The most helpful part of this library is that you already get all of the instrumentations by default if you set up a module without any extra configuration. If you need to avoid some of them, you can use the `traceAutoInjectors` parameter.
 ```ts
-import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common'
 import {
-  OpenTelemetryModule,
   ControllerInjector,
   EventEmitterInjector,
   GuardInjector,
   LoggerInjector,
+  OpenTelemetryModule,
   PipeInjector,
   ScheduleInjector,
-} from '@easyv/nestjs-opentelemetry';
+} from '@easyv/nestjs-opentelemetry'
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base';
+import { SimpleSpanProcessor } from '@opentelemetry/sdk-trace-base'
 
 @Module({
   imports: [

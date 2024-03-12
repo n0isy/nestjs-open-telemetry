@@ -10,7 +10,7 @@ export class MiddlewareInjector extends BaseInjector {
     const metatype = Injector
     const originMethod = metatype.prototype.loadMiddleware
     const logger = this.logger
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    // eslint-disable-next-line ts/no-this-alias
     const self = this
     metatype.prototype.loadMiddleware = function loadMiddleware(...args: Parameters<Injector['loadMiddleware']>) {
       const instanceWrapper = args[0]

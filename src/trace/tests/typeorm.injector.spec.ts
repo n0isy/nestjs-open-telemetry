@@ -1,14 +1,15 @@
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { Injectable, OnModuleInit } from '@nestjs/common'
+import type { OnModuleInit } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { Column, DataSource, Entity, PrimaryColumn } from 'typeorm'
-import { DataSourceOptions } from 'typeorm/data-source/DataSourceOptions'
+import type { DataSourceOptions } from 'typeorm/data-source/DataSourceOptions'
 import { DbSystemValues, SemanticAttributes } from '@opentelemetry/semantic-conventions'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { DecoratorInjector, TypeormInjector, getConnectionAttributes } from '../injectors'
 import { Trace } from '../decorators'
 
-describe('TypeORM Injector Test', () => {
+describe('typeorm injector test', () => {
   @Entity()
   class User {
     @PrimaryColumn()
@@ -38,7 +39,7 @@ describe('TypeORM Injector Test', () => {
   const exporterSpy = jest.spyOn(exporter, 'onStart')
 
   const sdkModule = OpenTelemetryModule.forRoot({
-    spanProcessor: exporter,
+    spanProcessors: [exporter],
     autoInjectors: [DecoratorInjector, TypeormInjector],
     injectorsConfig: {
       TypeormInjector: {

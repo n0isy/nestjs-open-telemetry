@@ -6,12 +6,12 @@ import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { ControllerInjector, DecoratorInjector } from '../injectors'
 
-describe('Base Trace Injector Test', () => {
+describe('base trace injector test', () => {
   const exporter = new NoopSpanProcessor()
   const exporterSpy = jest.spyOn(exporter, 'onStart')
 
   const sdkModule = OpenTelemetryModule.forRoot({
-    spanProcessor: exporter,
+    spanProcessors: [exporter],
     autoInjectors: [DecoratorInjector, ControllerInjector],
   })
 

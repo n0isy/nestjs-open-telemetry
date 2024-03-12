@@ -1,5 +1,6 @@
-import { Injectable, NestInterceptor } from '@nestjs/common'
-import { ModulesContainer } from '@nestjs/core'
+import type { NestInterceptor } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
+import type { ModulesContainer } from '@nestjs/core'
 import { EnhancerInjector, EnhancerType } from './enhancer.injector'
 
 @Injectable()

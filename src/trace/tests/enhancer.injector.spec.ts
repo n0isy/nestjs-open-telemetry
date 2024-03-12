@@ -1,23 +1,29 @@
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import {
-  ArgumentsHost, CallHandler,
+import type {
+  ArgumentsHost,
+  CallHandler,
   CanActivate,
+  ExceptionFilter,
+  ExecutionContext,
+  NestInterceptor,
+} from '@nestjs/common'
+import {
   Catch,
   Controller,
-  ExceptionFilter, ExecutionContext,
   Get,
-  NestInterceptor, UseFilters,
-  UseGuards, UseInterceptors,
+  UseFilters,
+  UseGuards,
+  UseInterceptors,
 } from '@nestjs/common'
 import request from 'supertest'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
-import { Observable } from 'rxjs'
+import type { Observable } from 'rxjs'
 import { ControllerInjector, GuardInjector, InterceptorInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { ExceptionFilterInjector } from '../injectors/exception-filter.injector'
 
-describe('Tracing Enhancer Injector Test', () => {
+describe('tracing enhancer injector test', () => {
   class TestGuard implements CanActivate {
     canActivate() {
       return true
@@ -38,7 +44,7 @@ describe('Tracing Enhancer Injector Test', () => {
   const exporterSpy = jest.spyOn(exporter, 'onStart')
 
   const sdkModule = OpenTelemetryModule.forRoot({
-    spanProcessor: exporter,
+    spanProcessors: [exporter],
     autoInjectors: [GuardInjector, InterceptorInjector, ExceptionFilterInjector, ControllerInjector],
   })
 

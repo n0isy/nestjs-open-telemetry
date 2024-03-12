@@ -1,13 +1,14 @@
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { Controller, Get, Param, PipeTransform, UsePipes } from '@nestjs/common'
+import type { PipeTransform } from '@nestjs/common'
+import { Controller, Get, Param, UsePipes } from '@nestjs/common'
 import { APP_PIPE } from '@nestjs/core'
 import request from 'supertest'
 import { ControllerInjector, PipeInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 
-describe('Tracing Pipe Injector Test', () => {
+describe('tracing pipe injector test', () => {
   class TestPipe implements PipeTransform {
     async transform(v: any) { return v }
   }
@@ -15,7 +16,7 @@ describe('Tracing Pipe Injector Test', () => {
   const exporterSpy = jest.spyOn(exporter, 'onStart')
 
   const sdkModule = OpenTelemetryModule.forRoot({
-    spanProcessor: exporter,
+    spanProcessors: [exporter],
     autoInjectors: [ControllerInjector, PipeInjector],
   })
 
