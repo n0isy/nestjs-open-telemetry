@@ -1,6 +1,6 @@
 import type { ExceptionFilter } from '@nestjs/common'
 import { Injectable } from '@nestjs/common'
-import type { ModulesContainer } from '@nestjs/core'
+import { ModulesContainer } from '@nestjs/core'
 import { EnhancerInjector, EnhancerType } from './enhancer.injector'
 
 @Injectable()

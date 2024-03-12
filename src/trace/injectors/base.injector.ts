@@ -1,6 +1,5 @@
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import type { ModulesContainer } from '@nestjs/core'
-import { MetadataScanner } from '@nestjs/core'
+import { MetadataScanner, ModulesContainer } from '@nestjs/core'
 import type { Controller, Injectable } from '@nestjs/common/interfaces'
 import { PATH_METADATA } from '@nestjs/common/constants'
 import { Injectable as InjectableDec } from '@nestjs/common'

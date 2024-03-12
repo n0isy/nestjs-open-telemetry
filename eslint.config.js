@@ -5,6 +5,7 @@ module.exports = antfu({
     'no-void': ['off'],
     '@typescript-eslint/consistent-type-imports': ['off'],
     'dot-notation': ['off'],
+    'ts/consistent-type-imports': ['off'],
   },
 }, {
   ignores: ['*.md', '*.yaml'],

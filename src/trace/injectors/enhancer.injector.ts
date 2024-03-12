@@ -1,8 +1,7 @@
 import type { CanActivate, ExceptionFilter, NestInterceptor, PipeTransform, Type } from '@nestjs/common'
 import { Injectable, Logger } from '@nestjs/common'
 import type { Module } from '@nestjs/core/injector/module'
-import type { ModulesContainer } from '@nestjs/core'
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, ModuleRef } from '@nestjs/core'
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, ModuleRef, ModulesContainer } from '@nestjs/core'
 import {
   EXCEPTION_FILTERS_METADATA,
   GUARDS_METADATA,
