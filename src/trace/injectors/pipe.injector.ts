@@ -1,8 +1,8 @@
-import type { PipeTransform, Type, assignMetadata } from '@nestjs/common'
-import { Injectable } from '@nestjs/common'
-import { ModulesContainer } from '@nestjs/core'
-import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
+import type { assignMetadata, PipeTransform, Type } from '@nestjs/common'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
+import { Injectable } from '@nestjs/common'
+import { ROUTE_ARGS_METADATA } from '@nestjs/common/constants'
+import { ModulesContainer } from '@nestjs/core'
 import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 import { EnhancerInjector, EnhancerType } from './enhancer.injector'
 

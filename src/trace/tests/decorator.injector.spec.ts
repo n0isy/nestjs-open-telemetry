@@ -1,11 +1,11 @@
+import { Controller, Get, Injectable } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { Controller, Get, Injectable } from '@nestjs/common'
 import request from 'supertest'
-import { Trace, TracePlain } from '../decorators'
-import { OpenTelemetryModule } from '../../open-telemetry.module'
-import { ControllerInjector, DecoratorInjector } from '../injectors'
 import { TRACE_METADATA_ACTIVE } from '../../open-telemetry.enums'
+import { OpenTelemetryModule } from '../../open-telemetry.module'
+import { Trace, TracePlain } from '../decorators'
+import { ControllerInjector, DecoratorInjector } from '../injectors'
 
 describe('tracing decorator injector test', () => {
   const exporter = new NoopSpanProcessor()

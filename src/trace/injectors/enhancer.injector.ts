@@ -1,15 +1,15 @@
 import type { CanActivate, ExceptionFilter, NestInterceptor, PipeTransform, Type } from '@nestjs/common'
-import { Injectable, Logger } from '@nestjs/common'
+import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import type { Module } from '@nestjs/core/injector/module'
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, ModuleRef, ModulesContainer } from '@nestjs/core'
+import type { SpanOptions } from '@opentelemetry/api'
+import { Injectable, Logger } from '@nestjs/common'
 import {
   EXCEPTION_FILTERS_METADATA,
   GUARDS_METADATA,
   INTERCEPTORS_METADATA,
   PIPES_METADATA,
 } from '@nestjs/common/constants'
-import type { SpanOptions } from '@opentelemetry/api'
-import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE, ModuleRef, ModulesContainer } from '@nestjs/core'
 import { AttributeNames, EnhancerScope } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
@@ -68,7 +68,7 @@ export abstract class EnhancerInjector<
   protected readonly methodKey: string
   protected readonly traceName: string
 
-  public constructor(
+  protected constructor(
     modulesContainer: ModulesContainer,
     protected readonly enhancerType: EnhancerType,
   ) {

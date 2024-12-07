@@ -1,12 +1,12 @@
-import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import { MetadataScanner, ModulesContainer } from '@nestjs/core'
 import type { Controller, Injectable } from '@nestjs/common/interfaces'
-import { PATH_METADATA } from '@nestjs/common/constants'
-import { Injectable as InjectableDec } from '@nestjs/common'
-import { INVALID_SPAN_CONTEXT, SpanStatusCode, context, trace } from '@opentelemetry/api'
+import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
 import type { Attributes, Span, SpanOptions } from '@opentelemetry/api'
-import { TRACE_METADATA, TRACE_METADATA_ACTIVE } from '../../open-telemetry.enums'
 import type { Injector } from './injector'
+import { Injectable as InjectableDec } from '@nestjs/common'
+import { PATH_METADATA } from '@nestjs/common/constants'
+import { MetadataScanner, ModulesContainer } from '@nestjs/core'
+import { context, INVALID_SPAN_CONTEXT, SpanStatusCode, trace } from '@opentelemetry/api'
+import { TRACE_METADATA, TRACE_METADATA_ACTIVE } from '../../open-telemetry.enums'
 
 export type DynamicAttributesHook = (option: { args: unknown[], thisArg: unknown, parentSpan?: Span }) => Attributes
 

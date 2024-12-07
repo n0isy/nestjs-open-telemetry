@@ -1,10 +1,10 @@
+import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
+import type { SpanKind } from '@opentelemetry/api/build/src/trace/span_kind'
 import { Logger, SetMetadata } from '@nestjs/common'
 import { MetadataScanner } from '@nestjs/core'
-import type { SpanKind } from '@opentelemetry/api/build/src/trace/span_kind'
-import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
-import { BaseInjector } from '../injectors'
-
 import { TRACE_METADATA } from '../../open-telemetry.enums'
+
+import { BaseInjector } from '../injectors'
 
 export interface TraceOptions {
   /**

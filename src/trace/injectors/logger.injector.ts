@@ -1,6 +1,6 @@
+import type { Injector } from './injector'
 import { Logger } from '@nestjs/common'
 import { context, trace } from '@opentelemetry/api'
-import type { Injector } from './injector'
 
 export class LoggerInjector implements Injector {
   public inject(): void {

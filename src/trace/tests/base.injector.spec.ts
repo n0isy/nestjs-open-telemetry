@@ -1,9 +1,9 @@
+import { Controller, Get, Injectable } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { Controller, Get, Injectable } from '@nestjs/common'
 import request from 'supertest'
-import { Trace } from '../decorators'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
+import { Trace } from '../decorators'
 import { ControllerInjector, DecoratorInjector } from '../injectors'
 
 describe('base trace injector test', () => {

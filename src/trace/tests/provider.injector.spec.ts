@@ -1,15 +1,15 @@
-import { Test } from '@nestjs/testing'
-import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import {
   Controller,
   Get,
   Injectable,
   Module,
 } from '@nestjs/common'
+import { Test } from '@nestjs/testing'
+import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import request from 'supertest'
-import { ControllerInjector, DecoratorInjector, ProviderInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { Trace } from '../decorators'
+import { ControllerInjector, DecoratorInjector, ProviderInjector } from '../injectors'
 
 describe('tracing provider injector test', () => {
   const exporter = new NoopSpanProcessor()

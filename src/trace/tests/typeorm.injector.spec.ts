@@ -1,13 +1,20 @@
+import type { OnModuleInit } from '@nestjs/common'
+import type { DataSourceOptions } from 'typeorm/data-source/DataSourceOptions'
+import { Injectable } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import type { OnModuleInit } from '@nestjs/common'
-import { Injectable } from '@nestjs/common'
+import {
+  ATTR_DB_NAMESPACE,
+  ATTR_DB_SYSTEM,
+  ATTR_SERVER_ADDRESS,
+  ATTR_SERVER_PORT,
+  DB_SYSTEM_VALUE_MYSQL,
+  DB_SYSTEM_VALUE_POSTGRESQL,
+} from '@opentelemetry/semantic-conventions/incubating'
 import { Column, DataSource, Entity, PrimaryColumn } from 'typeorm'
-import type { DataSourceOptions } from 'typeorm/data-source/DataSourceOptions'
-import { DbSystemValues, SemanticAttributes } from '@opentelemetry/semantic-conventions'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
-import { DecoratorInjector, TypeormInjector, getConnectionAttributes } from '../injectors'
 import { Trace } from '../decorators'
+import { DecoratorInjector, getConnectionAttributes, TypeormInjector } from '../injectors'
 
 describe('typeorm injector test', () => {
   @Entity()
@@ -55,31 +62,26 @@ describe('typeorm injector test', () => {
 
   it('getConnectionAttributes', async () => {
     const attributes = getConnectionAttributes(defaultOptions)
-    expect(attributes[SemanticAttributes.DB_SYSTEM]).toStrictEqual('sqlite')
-    expect(attributes[SemanticAttributes.DB_CONNECTION_STRING]).toStrictEqual(':memory:')
+    expect(attributes[ATTR_DB_SYSTEM]).toStrictEqual('sqlite')
 
     const attributes1 = getConnectionAttributes({
       type: 'postgres',
       url: 'postgres://postgres:postgres@localhost/postgres',
     })
-    expect(attributes1[SemanticAttributes.DB_SYSTEM]).toStrictEqual(DbSystemValues.POSTGRESQL)
-    expect(attributes1[SemanticAttributes.DB_CONNECTION_STRING]).toStrictEqual('postgres://postgres@localhost:5432/postgres')
-    expect(attributes1[SemanticAttributes.DB_USER]).toStrictEqual('postgres')
-    expect(attributes1[SemanticAttributes.DB_NAME]).toStrictEqual('postgres')
-    expect(attributes1[SemanticAttributes.NET_PEER_NAME]).toStrictEqual('localhost')
-    expect(attributes1[SemanticAttributes.NET_PEER_PORT]).toStrictEqual(5432)
+    expect(attributes1[ATTR_DB_SYSTEM]).toStrictEqual(DB_SYSTEM_VALUE_POSTGRESQL)
+    expect(attributes1[ATTR_DB_NAMESPACE]).toStrictEqual('postgres')
+    expect(attributes1[ATTR_SERVER_ADDRESS]).toStrictEqual('localhost')
+    expect(attributes1[ATTR_SERVER_PORT]).toStrictEqual(5432)
 
     const attributes2 = getConnectionAttributes({
       type: 'mysql',
       password: 'root',
       database: 'test',
     })
-    expect(attributes2[SemanticAttributes.DB_SYSTEM]).toStrictEqual(DbSystemValues.MYSQL)
-    expect(attributes2[SemanticAttributes.DB_CONNECTION_STRING]).toStrictEqual('mysql://localhost:3306/test')
-    expect(attributes2[SemanticAttributes.DB_USER]).toBeUndefined()
-    expect(attributes2[SemanticAttributes.DB_NAME]).toStrictEqual('test')
-    expect(attributes2[SemanticAttributes.NET_PEER_NAME]).toStrictEqual('localhost')
-    expect(attributes2[SemanticAttributes.NET_PEER_PORT]).toStrictEqual(3306)
+    expect(attributes2[ATTR_DB_SYSTEM]).toStrictEqual(DB_SYSTEM_VALUE_MYSQL)
+    expect(attributes2[ATTR_DB_NAMESPACE]).toStrictEqual('test')
+    expect(attributes2[ATTR_SERVER_ADDRESS]).toStrictEqual('localhost')
+    expect(attributes2[ATTR_SERVER_PORT]).toStrictEqual(3306)
 
     const attributes3 = getConnectionAttributes({
       type: 'aurora-postgres',
@@ -88,8 +90,8 @@ describe('typeorm injector test', () => {
       resourceArn: '',
       secretArn: '',
     })
-    expect(attributes3[SemanticAttributes.DB_SYSTEM]).toStrictEqual(DbSystemValues.POSTGRESQL)
-    expect(attributes3[SemanticAttributes.DB_NAME]).toStrictEqual('test')
+    expect(attributes3[ATTR_DB_SYSTEM]).toStrictEqual(DB_SYSTEM_VALUE_POSTGRESQL)
+    expect(attributes3[ATTR_DB_NAMESPACE]).toStrictEqual('test')
   })
 
   it('should trace EntityManager', async () => {

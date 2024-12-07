@@ -1,43 +1,40 @@
 import type { Type } from '@nestjs/common'
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
 import type {
-  DataSource,
   DatabaseType,
+  DataSource,
   EntityManager,
   EntityMetadata,
   EntityTarget,
   QueryRunner,
 } from 'typeorm'
-import {
-  DBSYSTEMVALUES_CACHE,
-  DBSYSTEMVALUES_COCKROACHDB,
-  DBSYSTEMVALUES_HANADB,
-  DBSYSTEMVALUES_MARIADB,
-  DBSYSTEMVALUES_MONGODB,
-  DBSYSTEMVALUES_MSSQL,
-  DBSYSTEMVALUES_MYSQL,
-  DBSYSTEMVALUES_ORACLE,
-  DBSYSTEMVALUES_OTHER_SQL,
-  DBSYSTEMVALUES_POSTGRESQL,
-  DBSYSTEMVALUES_SQLITE,
-  SEMATTRS_DB_CONNECTION_STRING,
-  SEMATTRS_DB_NAME,
-  SEMATTRS_DB_OPERATION,
-  SEMATTRS_DB_SQL_TABLE,
-  SEMATTRS_DB_STATEMENT,
-  SEMATTRS_DB_SYSTEM,
-  SEMATTRS_DB_USER,
-  SEMATTRS_NET_PEER_NAME,
-  SEMATTRS_NET_PEER_PORT,
-} from '@opentelemetry/semantic-conventions'
 import type { BaseDataSourceOptions } from 'typeorm/data-source/BaseDataSourceOptions'
 import type { DataSourceOptions } from 'typeorm/data-source/DataSourceOptions'
-import type { Attributes } from '@opentelemetry/api/build/src/common/Attributes'
-import { SpanKind, context, trace } from '@opentelemetry/api'
-import { Span } from '@opentelemetry/sdk-trace-base'
-import { ModulesContainer } from '@nestjs/core'
-import { SDK_CONFIG } from '../../open-telemetry.enums'
 import type { OpenTelemetryModuleConfig } from '../../open-telemetry.interface'
+import { Inject, Injectable, Logger } from '@nestjs/common'
+import { ModulesContainer } from '@nestjs/core'
+import { context, SpanKind, trace } from '@opentelemetry/api'
+import { Span } from '@opentelemetry/sdk-trace-base'
+import {
+  ATTR_DB_COLLECTION_NAME,
+  ATTR_DB_NAMESPACE,
+  ATTR_DB_OPERATION_NAME,
+  ATTR_DB_QUERY_TEXT,
+  ATTR_DB_SYSTEM,
+  ATTR_SERVER_ADDRESS,
+  ATTR_SERVER_PORT,
+  DB_SYSTEM_VALUE_COCKROACHDB,
+  DB_SYSTEM_VALUE_HANADB,
+  DB_SYSTEM_VALUE_MARIADB,
+  DB_SYSTEM_VALUE_MONGODB,
+  DB_SYSTEM_VALUE_MSSQL,
+  DB_SYSTEM_VALUE_MYSQL,
+  DB_SYSTEM_VALUE_ORACLE,
+  DB_SYSTEM_VALUE_OTHER_SQL,
+  DB_SYSTEM_VALUE_POSTGRESQL,
+  DB_SYSTEM_VALUE_SQLITE,
+} from '@opentelemetry/semantic-conventions/incubating'
+import { SDK_CONFIG } from '../../open-telemetry.enums'
 import { BaseInjector } from './base.injector'
 
 export interface TypeormInjectorOptions {
@@ -72,22 +69,22 @@ function getDbSystemValue(options: BaseDataSourceOptions): string {
   switch (options.type) {
     case 'mysql':
     case 'aurora-mysql':
-      return DBSYSTEMVALUES_MYSQL
+      return DB_SYSTEM_VALUE_MYSQL
     case 'postgres':
     case 'aurora-postgres':
-      return DBSYSTEMVALUES_POSTGRESQL
+      return DB_SYSTEM_VALUE_POSTGRESQL
     case 'cockroachdb':
-      return DBSYSTEMVALUES_COCKROACHDB
+      return DB_SYSTEM_VALUE_COCKROACHDB
     case 'sap':
-      return DBSYSTEMVALUES_HANADB
+      return DB_SYSTEM_VALUE_HANADB
     case 'mariadb':
-      return DBSYSTEMVALUES_MARIADB
+      return DB_SYSTEM_VALUE_MARIADB
     case 'oracle':
-      return DBSYSTEMVALUES_ORACLE
+      return DB_SYSTEM_VALUE_ORACLE
     case 'mssql':
-      return DBSYSTEMVALUES_MSSQL
+      return DB_SYSTEM_VALUE_MSSQL
     case 'mongodb':
-      return DBSYSTEMVALUES_MONGODB
+      return DB_SYSTEM_VALUE_MONGODB
     case 'sqlite':
     case 'cordova':
     case 'react-native':
@@ -96,10 +93,10 @@ function getDbSystemValue(options: BaseDataSourceOptions): string {
     case 'better-sqlite3':
     case 'capacitor':
     case 'sqljs':
-      return DBSYSTEMVALUES_SQLITE
+      return DB_SYSTEM_VALUE_SQLITE
     case 'spanner':
     default:
-      return DBSYSTEMVALUES_OTHER_SQL
+      return DB_SYSTEM_VALUE_OTHER_SQL
   }
 }
 
@@ -142,35 +139,30 @@ function getDefaultPort(type: DatabaseType): number | undefined {
 export function getConnectionAttributes(options: DataSourceOptions): Attributes {
   if (sqliteFamily.includes(options.type)) {
     return {
-      [SEMATTRS_DB_SYSTEM]: DBSYSTEMVALUES_SQLITE,
-      [SEMATTRS_DB_CONNECTION_STRING]: typeof options.database === 'string' ? options.database : DBSYSTEMVALUES_CACHE,
+      [ATTR_DB_SYSTEM]: DB_SYSTEM_VALUE_SQLITE,
     }
   }
   else if (!sqliteFamily.concat(auroraFamily).includes(options.type)) {
     const connectionOptions = options as any
     let host: string | undefined = connectionOptions.host || 'localhost'
     let port: number | undefined = connectionOptions.port || getDefaultPort(options.type)
-    let user: string | undefined = connectionOptions.username
     let database = typeof options.database === 'string' ? options.database : void 0
     if (connectionOptions.url) {
       const url = new URL(connectionOptions.url)
       port = Number(url.port) || port
       host = url.hostname
-      user = url.username
       database = url.pathname.slice(1) || database
     }
     return {
-      [SEMATTRS_DB_SYSTEM]: getDbSystemValue(options),
-      [SEMATTRS_DB_CONNECTION_STRING]: `${options.type}://${user ? `${user}@` : ''}${host}:${port}${database ? `/${database}` : ''}`,
-      [SEMATTRS_NET_PEER_NAME]: host,
-      [SEMATTRS_NET_PEER_PORT]: port,
-      [SEMATTRS_DB_USER]: user,
-      [SEMATTRS_DB_NAME]: database,
+      [ATTR_DB_SYSTEM]: getDbSystemValue(options),
+      [ATTR_SERVER_ADDRESS]: host,
+      [ATTR_SERVER_PORT]: port,
+      [ATTR_DB_NAMESPACE]: database,
     }
   }
   return {
-    [SEMATTRS_DB_SYSTEM]: getDbSystemValue(options),
-    [SEMATTRS_DB_NAME]: typeof options.database === 'string' ? options.database : void 0,
+    [ATTR_DB_SYSTEM]: getDbSystemValue(options),
+    [ATTR_DB_NAMESPACE]: typeof options.database === 'string' ? options.database : void 0,
   }
 }
 
@@ -224,23 +216,26 @@ export class TypeormInjector extends BaseInjector {
             if (usingEntityPersistExecutor.includes(key)) {
               const entityOrTarget = args[0] as EntityTarget<any> | object | object[]
               let target: EntityTarget<any>
-              if (Array.isArray(entityOrTarget))
+              if (Array.isArray(entityOrTarget)) {
                 target = entityOrTarget[0].constructor
+              }
               else if (
                 typeof entityOrTarget === 'function'
                 || (entityOrTarget as { '@instanceof': symbol })['@instanceof'] === Symbol.for('EntitySchema')
-              )
+              ) {
                 target = entityOrTarget as EntityTarget<any>
-              else
+              }
+              else {
                 target = typeof entityOrTarget === 'string' ? entityOrTarget : entityOrTarget.constructor
+              }
               metadata = entityManager.connection.getMetadata(target)
             }
             else {
               metadata = entityManager.connection.getMetadata(args[0] as EntityTarget<any>)
             }
             return {
-              [SEMATTRS_DB_NAME]: metadata.schema ?? metadata.database,
-              [SEMATTRS_DB_SQL_TABLE]: metadata.tableName,
+              [ATTR_DB_NAMESPACE]: metadata.schema ?? metadata.database,
+              [ATTR_DB_COLLECTION_NAME]: metadata.tableName,
               ...getSemanticAttributes(entityManager.connection),
             }
           },
@@ -251,58 +246,56 @@ export class TypeormInjector extends BaseInjector {
   }
 
   private injectQueryRunner(): void {
-    this.loadFastGlob()?.sync('typeorm/driver/*/*.js', { cwd: 'node_modules' })
-      .filter(f => f.includes('QueryRunner'))
-      .forEach((filePath) => {
-        // eslint-disable-next-line ts/no-require-imports,ts/no-var-requires
-        const moduleExports = require(filePath)
-        const [, queryRunner] = Object.entries<Type<QueryRunner>>(moduleExports).find(([name, type]) => name.includes('QueryRunner') && typeof type === 'function') ?? []
-        if (!queryRunner)
-          return
-        const prototype = queryRunner.prototype
-        if (prototype.query === undefined)
-          return
+    this.loadFastGlob()?.sync('typeorm/driver/*/*.js', { cwd: 'node_modules' }).filter(f => f.includes('QueryRunner')).forEach((filePath) => {
+      // eslint-disable-next-line ts/no-require-imports
+      const moduleExports = require(filePath)
+      const [, queryRunner] = Object.entries<Type<QueryRunner>>(moduleExports).find(([name, type]) => name.includes('QueryRunner') && typeof type === 'function') ?? []
+      if (!queryRunner)
+        return
+      const prototype = queryRunner.prototype
+      if (prototype.query === undefined)
+        return
 
-        prototype.query = this.wrap(
-          prototype.query,
-          'TypeORM -> raw query',
-          {
-            kind: SpanKind.CLIENT,
-          },
-          true,
-          ({ args, thisArg, parentSpan }) => {
-            const runner = thisArg as QueryRunner
-            const parentAttributes = parentSpan instanceof Span ? parentSpan.attributes : {}
-            const statement = args[0] as string
-            const operation = statement.trim().split(' ')[0].toUpperCase()
-            const span = trace.getSpan(context.active())
-            span?.updateName(`TypeORM -> ${operation}`)
-            const attributes: Attributes = {
-              [SEMATTRS_DB_STATEMENT]: args[0] as string,
-              [SEMATTRS_DB_NAME]: parentAttributes[SEMATTRS_DB_NAME],
-              [SEMATTRS_DB_SQL_TABLE]: parentAttributes[SEMATTRS_DB_SQL_TABLE],
-              [SEMATTRS_DB_OPERATION]: operation,
-              ...getSemanticAttributes(runner.connection),
+      prototype.query = this.wrap(
+        prototype.query,
+        'TypeORM -> raw query',
+        {
+          kind: SpanKind.CLIENT,
+        },
+        true,
+        ({ args, thisArg, parentSpan }) => {
+          const runner = thisArg as QueryRunner
+          const parentAttributes = parentSpan instanceof Span ? parentSpan.attributes : {}
+          const statement = args[0] as string
+          const operation = statement.trim().split(' ')[0].toUpperCase()
+          const span = trace.getSpan(context.active())
+          span?.updateName(`TypeORM -> ${operation}`)
+          const attributes: Attributes = {
+            [ATTR_DB_QUERY_TEXT]: args[0] as string,
+            [ATTR_DB_NAMESPACE]: parentAttributes[ATTR_DB_NAMESPACE],
+            [ATTR_DB_COLLECTION_NAME]: parentAttributes[ATTR_DB_COLLECTION_NAME],
+            [ATTR_DB_OPERATION_NAME]: operation,
+            ...getSemanticAttributes(runner.connection),
+          }
+          if (this.config.collectParameters) {
+            try {
+              attributes[DB_STATEMENT_PARAMETERS] = JSON.stringify(args[1])
             }
-            if (this.config.collectParameters) {
-              try {
-                attributes[DB_STATEMENT_PARAMETERS] = JSON.stringify(args[1])
-              }
-              catch (e) {}
-            }
-            return attributes
-          },
-        )
-        this.logger.log(`Mapped ${queryRunner.name}`)
-      })
+            catch {}
+          }
+          return attributes
+        },
+      )
+      this.logger.log(`Mapped ${queryRunner.name}`)
+    })
   }
 
   private loadDependencies<T extends keyof typeof import('typeorm')>(key: T): Type<(typeof import('typeorm'))[T]> | undefined {
     try {
-      // eslint-disable-next-line ts/no-require-imports,ts/no-var-requires
+      // eslint-disable-next-line ts/no-require-imports
       return require('typeorm')[key]
     }
-    catch (e) {
+    catch {
       this.logger.warn('typeorm is not installed, TypeormInjector will be disabled.')
       return void 0
     }
@@ -313,7 +306,7 @@ export class TypeormInjector extends BaseInjector {
       // eslint-disable-next-line ts/no-require-imports
       return require('fast-glob')
     }
-    catch (e) {
+    catch {
       this.logger.warn('fast-glob is not installed, TypeormInjector will be disabled.')
       return void 0
     }

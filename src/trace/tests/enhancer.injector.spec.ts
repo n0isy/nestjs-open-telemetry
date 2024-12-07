@@ -1,5 +1,3 @@
-import { Test } from '@nestjs/testing'
-import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import type {
   ArgumentsHost,
   CallHandler,
@@ -8,6 +6,7 @@ import type {
   ExecutionContext,
   NestInterceptor,
 } from '@nestjs/common'
+import type { Observable } from 'rxjs'
 import {
   Catch,
   Controller,
@@ -16,11 +15,12 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common'
-import request from 'supertest'
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core'
-import type { Observable } from 'rxjs'
-import { ControllerInjector, GuardInjector, InterceptorInjector } from '../injectors'
+import { Test } from '@nestjs/testing'
+import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
+import request from 'supertest'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
+import { ControllerInjector, GuardInjector, InterceptorInjector } from '../injectors'
 import { ExceptionFilterInjector } from '../injectors/exception-filter.injector'
 
 describe('tracing enhancer injector test', () => {

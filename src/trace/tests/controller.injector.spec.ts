@@ -1,11 +1,11 @@
+import { Controller, ForbiddenException, Get } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
 import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
-import { Controller, ForbiddenException, Get } from '@nestjs/common'
 import request from 'supertest'
 import waitForExpect from 'wait-for-expect'
-import { ControllerInjector, DecoratorInjector } from '../injectors'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { Trace } from '../decorators'
+import { ControllerInjector, DecoratorInjector } from '../injectors'
 
 describe('tracing controller injector test', () => {
   const exporter = new NoopSpanProcessor()

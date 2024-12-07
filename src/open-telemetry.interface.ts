@@ -1,5 +1,5 @@
-import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node'
 import type { ModuleMetadata, Type } from '@nestjs/common'
+import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node'
 import type { Injector } from './trace/injectors'
 
 export interface OpenTelemetryModuleConfig
@@ -15,7 +15,7 @@ export interface OpenTelemetryModuleAsyncOption
   useFactory: (
     ...args: any[]
   ) =>
-  | Promise<Partial<OpenTelemetryModuleConfig>>
-  | Partial<OpenTelemetryModuleConfig>
+    | Promise<Partial<OpenTelemetryModuleConfig>>
+    | Partial<OpenTelemetryModuleConfig>
   inject?: any[]
 }

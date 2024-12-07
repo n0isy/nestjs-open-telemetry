@@ -1,11 +1,11 @@
-import { Inject, Injectable, Logger, Scope } from '@nestjs/common'
 import type { InstanceWrapper } from '@nestjs/core/injector/instance-wrapper'
-import { InternalCoreModule } from '@nestjs/core/injector/internal-core-module'
-import { DiscoveryService, MetadataScanner, ModuleRef, ModulesContainer } from '@nestjs/core'
 import type { OpenTelemetryModuleConfig } from '../../open-telemetry.interface'
+import { Inject, Injectable, Logger, Scope } from '@nestjs/common'
+import { DiscoveryService, MetadataScanner, ModuleRef, ModulesContainer } from '@nestjs/core'
+import { InternalCoreModule } from '@nestjs/core/injector/internal-core-module'
 import { AttributeNames, ProviderScope, SDK_CONFIG } from '../../open-telemetry.enums'
-import { LoggerInjector } from './logger.injector'
 import { BaseInjector } from './base.injector'
+import { LoggerInjector } from './logger.injector'
 
 export interface ProviderInjectorConfig {
   excludeModules?: (Function | string)[]
@@ -82,13 +82,15 @@ export class ProviderInjector extends BaseInjector {
     if (
       this.config.excludeModules?.includes(<Function>provider.host?.metatype)
       || this.config.excludeModules?.includes(<string>provider.host?.name)
-    )
+    ) {
       return true
+    }
     if (
       this.config.excludeProviders?.includes(<Function>provider.metatype)
       || this.config.excludeProviders?.includes(<string>provider.name)
-    )
+    ) {
       return true
+    }
     return false
   }
 }

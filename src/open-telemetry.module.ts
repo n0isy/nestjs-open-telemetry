@@ -1,15 +1,15 @@
 import type { DynamicModule, FactoryProvider, ValueProvider } from '@nestjs/common'
-import { NodeSDK } from '@opentelemetry/sdk-node'
+import type { OpenTelemetryModuleAsyncOption, OpenTelemetryModuleConfig } from './open-telemetry.interface'
+import type { Injector } from './trace/injectors'
 import { ModuleRef } from '@nestjs/core'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
 import { Resource } from '@opentelemetry/resources'
-import { OpenTelemetryService } from './open-telemetry.service'
+import { NodeSDK } from '@opentelemetry/sdk-node'
 import {
   defaultConfig,
 } from './open-telemetry.constants'
-import type { Injector } from './trace/injectors'
-import type { OpenTelemetryModuleAsyncOption, OpenTelemetryModuleConfig } from './open-telemetry.interface'
 import { SDK_CONFIG, SDK_INJECTORS } from './open-telemetry.enums'
+import { OpenTelemetryService } from './open-telemetry.service'
 
 export class OpenTelemetryModule {
   public static forRoot(

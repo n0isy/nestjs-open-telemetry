@@ -1,9 +1,9 @@
-import { Test } from '@nestjs/testing'
-import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { Injectable } from '@nestjs/common'
 import { Cron, Interval, Timeout } from '@nestjs/schedule'
-import { Trace } from '../decorators'
+import { Test } from '@nestjs/testing'
+import { NoopSpanProcessor } from '@opentelemetry/sdk-trace-base'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
+import { Trace } from '../decorators'
 import { DecoratorInjector, ScheduleInjector } from '../injectors'
 
 describe('tracing scheduler injector test', () => {
