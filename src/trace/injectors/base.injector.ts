@@ -67,13 +67,15 @@ export abstract class BaseInjector implements Injector {
     requireParentSpan = false,
     dynamicAttributesHook?: DynamicAttributesHook,
   ): Function {
-    const method = {
-      [func.name](...args: any[]) {
+    const method = new Proxy(func, {
+      apply: (target, thisArg, args: any[]) => {
+        const stackObject = {}
+        Error.captureStackTrace(stackObject)
         const tracer = trace.getTracer('default')
         const ctx = context.active()
         const parentSpan = trace.getSpan(ctx)
         if (requireParentSpan && (parentSpan == null || parentSpan.spanContext() === INVALID_SPAN_CONTEXT))
-          return func.apply(this, args)
+          return Reflect.apply(target, thisArg, args)
         const span = tracer.startSpan(
           traceName,
           spanOptions,
@@ -82,27 +84,29 @@ export abstract class BaseInjector implements Injector {
         const contextWithSpan = trace.setSpan(ctx, span)
         return context.with(contextWithSpan, (currentSpan) => {
           if (dynamicAttributesHook)
-            currentSpan.setAttributes(dynamicAttributesHook({ args, thisArg: this, parentSpan }))
+            currentSpan.setAttributes(dynamicAttributesHook({ args, thisArg, parentSpan }))
 
+          const beforeApplyStackObject = {}
+          Error.captureStackTrace(beforeApplyStackObject)
           try {
-            const result = func.apply(this, args)
+            const result = Reflect.apply(target, thisArg, args)
             if (result instanceof Promise) {
               return result
                 .then((res) => {
                   currentSpan.end()
                   return res
                 })
-                .catch(error => BaseInjector.recordException(error, currentSpan))
+                .catch(error => BaseInjector.recordException(error, [stackObject, beforeApplyStackObject], currentSpan))
             }
             currentSpan.end()
             return result
           }
           catch (error) {
-            BaseInjector.recordException(error as Error, currentSpan)
+            BaseInjector.recordException(error as Error, [stackObject, beforeApplyStackObject], currentSpan)
           }
         }, undefined, span)
       },
-    }[func.name]
+    })
 
     Reflect.defineMetadata(TRACE_METADATA, {
       ...spanOptions,
@@ -114,7 +118,20 @@ export abstract class BaseInjector implements Injector {
     return method
   }
 
-  protected static recordException(error: Error, span: Span): never {
+  protected static recordException(error: Error, [stackObject, beforeApplyStackObject]: [{ stack?: string }, { stack?: string }], span: Span): never {
+    if (stackObject.stack && beforeApplyStackObject.stack) {
+      const preCallSites = stackObject.stack.split('\n')
+      const beforeCallSites = beforeApplyStackObject.stack.split('\n')
+      const callSites = error.stack?.split('\n') ?? []
+      if (callSites.length > 1) {
+        const startLine = callSites.findIndex(s => s.startsWith(beforeCallSites[1].split(':')[0]))
+        const endLine = callSites.findIndex(s => s.startsWith(preCallSites[1].split(':')[0]))
+        if (startLine !== -1 && endLine !== -1) {
+          const newCallSites = callSites.slice(0, startLine).concat(callSites.slice(endLine + 1))
+          error.stack = newCallSites.join('\n')
+        }
+      }
+    }
     span.recordException(error)
     span.setStatus({ code: SpanStatusCode.ERROR, message: error.message })
     span.end()
