@@ -6,6 +6,7 @@ import { OpenTelemetryService } from '../../open-telemetry.service'
 /**
  * Controller to expose metrics endpoint.
  * This will be conditionally registered based on module configuration.
+ * The metrics endpoint is configured using the path from config.metrics.endpoint.
  */
 @Controller()
 export class MetricsController {
@@ -16,9 +17,9 @@ export class MetricsController {
 
   /**
    * Endpoint to expose metrics in Prometheus format.
-   * Uses the configured endpoint path from module options.
+   * The path is determined by the dynamic route setup in the module.
    */
-  @Get()
+  @Get('metrics')
   @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
   async getMetrics(@Req() req: any): Promise<string> {
     const authFn = this.config.metrics?.authentication
@@ -28,7 +29,7 @@ export class MetricsController {
       throw new UnauthorizedException('Unauthorized access to metrics')
     }
 
-    // Collect metrics from meter provider
-    return this.openTelemetryService.collectMetrics()
+    // Collect metrics from meter provider (now with async/await support)
+    return await this.openTelemetryService.collectMetrics()
   }
 }

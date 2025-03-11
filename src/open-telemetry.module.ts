@@ -61,16 +61,19 @@ export class OpenTelemetryModule implements NestModule {
         const prometheusModule = require('@opentelemetry/exporter-prometheus')
         const PrometheusExporter = prometheusModule.PrometheusExporter
 
-        // Create the exporter with port: 0 to prevent it from starting its own server
+        // Create the exporter with preventServerStart: true to prevent HTTP server
         metricsExporter = new PrometheusExporter({
-          port: 0, // Important: Disable the built-in HTTP server
+          preventServerStart: true,
           prefix: config.metrics?.prefix || '',
         })
       }
       catch {
         // PrometheusExporter not available, use fallback
         metricsExporter = {
-          getMetrics: () => '# Metrics are not available without @opentelemetry/exporter-prometheus\n# Install the package to enable metrics collection',
+          collect: async () => ({
+            resourceMetrics: { resource: {}, scopeMetrics: [] },
+            errors: [] as unknown[],
+          }),
           setPrefix: (_unused: string) => { /* no-op */ },
         }
       }
@@ -90,8 +93,15 @@ export class OpenTelemetryModule implements NestModule {
         inject: [OpenTelemetryService, 'PROMETHEUS_EXPORTER'],
       })
 
-      // Add the metrics controller
-      controllers.push(MetricsController)
+      // Add the metrics controller with configured path
+      const metricsPath = config.metrics?.endpoint?.startsWith('/')
+        ? config.metrics.endpoint.substring(1)
+        : config.metrics.endpoint || 'metrics'
+
+      controllers.push({
+        type: MetricsController,
+        path: metricsPath,
+      })
     }
 
     return {
@@ -160,16 +170,19 @@ export class OpenTelemetryModule implements NestModule {
                 const prometheusModule = require('@opentelemetry/exporter-prometheus')
                 const PrometheusExporter = prometheusModule.PrometheusExporter
 
-                // Create with port 0 to prevent HTTP server
+                // Create with preventServerStart true to prevent HTTP server
                 return new PrometheusExporter({
-                  port: 0,
+                  preventServerStart: true,
                   prefix: config.metrics?.prefix || '',
                 })
               }
               catch {
                 // Fallback when PrometheusExporter not available
                 return {
-                  getMetrics: () => '# Metrics are not available without @opentelemetry/exporter-prometheus\n# Install the package to enable metrics collection',
+                  collect: async () => ({
+                    resourceMetrics: { resource: {}, scopeMetrics: [] },
+                    errors: [] as unknown[],
+                  }),
                   setPrefix: (_unused: string) => { /* no-op */ },
                 }
               }
@@ -186,6 +199,25 @@ export class OpenTelemetryModule implements NestModule {
             }
           },
           inject: [OpenTelemetryService, 'PROMETHEUS_EXPORTER'],
+        },
+        {
+          provide: 'METRICS_PATH_SETUP',
+          useFactory: (config: OpenTelemetryModuleConfig) => {
+            // Return null if metrics are disabled to ensure controller isn't registered
+            if (!config.metrics?.enabled || !config.metrics?.controller) {
+              return null
+            }
+
+            // Extract path from configuration and prepare it
+            const metricsPath = config.metrics?.endpoint?.startsWith('/')
+              ? config.metrics.endpoint.substring(1)
+              : config.metrics.endpoint || 'metrics'
+
+            // Metrics endpoint will be available at the configured path
+
+            return { path: metricsPath }
+          },
+          inject: [SDK_CONFIG],
         },
       ],
       controllers: [MetricsController],

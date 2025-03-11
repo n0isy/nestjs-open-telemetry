@@ -14,9 +14,12 @@ export interface GenericRequest {
   [key: string]: any
 }
 
-// Minimal Prometheus exporter interface
+// Prometheus exporter interface that matches the actual OpenTelemetry implementation
 export interface PrometheusExporterInterface {
-  getMetrics: () => string
+  collect: () => Promise<{
+    resourceMetrics: any
+    errors: unknown[] // Updated to match actual PrometheusExporter type
+  }>
   setPrefix?: (prefix: string) => void
 }
 

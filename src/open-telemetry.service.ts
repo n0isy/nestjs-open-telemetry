@@ -13,6 +13,7 @@ import { PrometheusExporterInterface } from './open-telemetry.interface'
 export class OpenTelemetryService implements BeforeApplicationShutdown {
   private readonly meter: Meter
   private metricsExporter: PrometheusExporterInterface | null = null
+  private prometheusSerializer: any | null = null
 
   constructor(private readonly sdk: NodeSDK) {
     // Get the global meter provider and create a meter
@@ -24,6 +25,17 @@ export class OpenTelemetryService implements BeforeApplicationShutdown {
    */
   public setMetricsExporter(exporter: PrometheusExporterInterface): void {
     this.metricsExporter = exporter
+
+    // Initialize the PrometheusSerializer when exporter is set
+    try {
+      // This is dynamically loaded to avoid dependency on @opentelemetry/exporter-prometheus
+      // eslint-disable-next-line ts/no-require-imports
+      const { PrometheusSerializer } = require('@opentelemetry/exporter-prometheus')
+      this.prometheusSerializer = new PrometheusSerializer('', false)
+    }
+    catch (error) {
+      console.error('Error initializing PrometheusSerializer:', error)
+    }
   }
 
   /**
@@ -76,17 +88,27 @@ export class OpenTelemetryService implements BeforeApplicationShutdown {
   /**
    * Collect metrics from the meter provider
    */
-  public collectMetrics(): string {
+  public async collectMetrics(): Promise<string> {
     if (!this.metricsExporter) {
       return '# Metrics collection is not available\n# Install @opentelemetry/exporter-prometheus package to enable metrics collection'
     }
 
+    if (!this.prometheusSerializer) {
+      return '# Metrics serialization is not available\n# Error initializing PrometheusSerializer'
+    }
+
     try {
-      // Use the exporter's getMetrics method to format metrics in Prometheus format
-      // This avoids starting a separate HTTP server while still getting the formatted metrics
-      return this.metricsExporter.getMetrics()
+      // Use the exporter's collect method and PrometheusSerializer to format metrics
+      const { resourceMetrics, errors } = await this.metricsExporter.collect()
+
+      if (errors.length > 0) {
+        console.error('Metrics collection errors:', errors)
+      }
+
+      return this.prometheusSerializer.serialize(resourceMetrics)
     }
     catch (error) {
+      console.error('Error collecting metrics:', error)
       return `# Error collecting metrics: ${error instanceof Error ? error.message : String(error)}`
     }
   }

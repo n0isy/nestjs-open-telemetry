@@ -6,27 +6,46 @@ import { OpenTelemetryService } from '../../open-telemetry.service'
 // Mock PrometheusExporter for testing
 class MockPrometheusExporter implements PrometheusExporterInterface {
   private prefix: string = ''
-  private _mockMetrics: string = ''
 
-  constructor(mockMetrics: string = '') {
-    this._mockMetrics = mockMetrics
+  constructor() {
+    // No longer using mockMetrics
   }
 
-  getMetrics(): string {
-    // Format mimics Prometheus output format
-    return this._mockMetrics || `# HELP test_metric Test metric description
-# TYPE test_metric counter
-test_metric{${this.prefix ? `prefix="${this.prefix}",` : ''}service="test"} 42
-`
+  async collect(): Promise<{ resourceMetrics: any, errors: unknown[] }> {
+    // Create mock resource metrics and errors
+    return {
+      resourceMetrics: {
+        resource: {
+          attributes: {
+            service: 'test',
+          },
+        },
+        scopeMetrics: [{
+          scope: { name: 'test' },
+          metrics: [
+            {
+              descriptor: {
+                name: 'test_metric',
+                description: 'Test metric description',
+                type: 'COUNTER',
+              },
+              dataPoints: [{
+                value: 42,
+                attributes: {
+                  service: 'test',
+                  ...(this.prefix ? { prefix: this.prefix } : {}),
+                },
+              }],
+            },
+          ],
+        }],
+      },
+      errors: [],
+    }
   }
 
   setPrefix(prefix: string): void {
     this.prefix = prefix
-  }
-
-  // Additional method for testing - not part of interface
-  setMockMetrics(metrics: string): void {
-    this._mockMetrics = metrics
   }
 }
 
@@ -74,37 +93,75 @@ describe('prometheus Integration', () => {
     const newService = newModule.get<OpenTelemetryService>(OpenTelemetryService)
 
     // Service should return fallback message when no exporter is set
-    const metrics = newService.collectMetrics()
+    const metrics = await newService.collectMetrics()
     expect(metrics).toContain('# Metrics collection is not available')
   })
 
-  it('should return metrics from exporter', () => {
-    const metrics = service.collectMetrics()
+  it('should return metrics from exporter', async () => {
+    const metrics = await service.collectMetrics()
     expect(metrics).toContain('test_metric')
     expect(metrics).toContain('42')
     expect(metrics).toContain('service="test"')
   })
 
-  it('should handle different metric types correctly', () => {
-    // Set mock metrics with different types
-    exporter.setMockMetrics(`# HELP test_counter Test counter description
-# TYPE test_counter counter
-test_counter{service="test"} 123
+  it('should handle different metric types correctly', async () => {
+    // Mock a more complex response with different metric types
+    jest.spyOn(exporter, 'collect').mockImplementationOnce(async () => ({
+      resourceMetrics: {
+        resource: {
+          attributes: {
+            service: 'test',
+          },
+        },
+        scopeMetrics: [{
+          scope: { name: 'test' },
+          metrics: [
+            {
+              descriptor: {
+                name: 'test_counter',
+                description: 'Test counter description',
+                type: 'COUNTER',
+              },
+              dataPoints: [{
+                value: 123,
+                attributes: { service: 'test' },
+              }],
+            },
+            {
+              descriptor: {
+                name: 'test_gauge',
+                description: 'Test gauge description',
+                type: 'GAUGE',
+              },
+              dataPoints: [{
+                value: 45.6,
+                attributes: { service: 'test' },
+              }],
+            },
+            {
+              descriptor: {
+                name: 'test_histogram',
+                description: 'Test histogram description',
+                type: 'HISTOGRAM',
+              },
+              dataPoints: [{
+                attributes: { service: 'test' },
+                buckets: [
+                  { boundary: 10, count: 10 },
+                  { boundary: 20, count: 15 },
+                  { boundary: Infinity, count: 20 },
+                ],
+                sum: 256.1,
+                count: 20,
+              }],
+            },
+          ],
+        }],
+      },
+      errors: [],
+    }))
 
-# HELP test_gauge Test gauge description
-# TYPE test_gauge gauge
-test_gauge{service="test"} 45.6
-
-# HELP test_histogram Test histogram description
-# TYPE test_histogram histogram
-test_histogram_bucket{service="test",le="10"} 10
-test_histogram_bucket{service="test",le="20"} 15
-test_histogram_bucket{service="test",le="+Inf"} 20
-test_histogram_sum{service="test"} 256.1
-test_histogram_count{service="test"} 20
-`)
-
-    const metrics = service.collectMetrics()
+    const metrics = await service.collectMetrics()
 
     // Should include all different metric types
     expect(metrics).toContain('test_counter')
@@ -117,10 +174,10 @@ test_histogram_count{service="test"} 20
     expect(metrics).toContain('test_histogram_bucket{service="test",le="+Inf"} 20')
   })
 
-  it('should handle errors from exporter', () => {
+  it('should handle errors from exporter', async () => {
     // Create a broken exporter that throws errors
     const brokenExporter: PrometheusExporterInterface = {
-      getMetrics: () => {
+      collect: async () => {
         throw new Error('Metrics collection failed')
       },
     }
@@ -128,7 +185,7 @@ test_histogram_count{service="test"} 20
     service.setMetricsExporter(brokenExporter)
 
     // Should gracefully handle the error
-    const metrics = service.collectMetrics()
+    const metrics = await service.collectMetrics()
     expect(metrics).toContain('Error collecting metrics: Metrics collection failed')
   })
 })

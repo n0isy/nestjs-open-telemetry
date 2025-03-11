@@ -27,37 +27,61 @@ describe('module Dynamic Loading', () => {
     service = module.get<OpenTelemetryService>(OpenTelemetryService)
   })
 
-  it('should use fallback when exporter is not set', () => {
+  it('should use fallback when exporter is not set', async () => {
     // Without setting an exporter
-    const metrics = service.collectMetrics()
+    const metrics = await service.collectMetrics()
     expect(metrics).toContain('Metrics collection is not available')
   })
 
-  it('should use exporter when available', () => {
+  it('should use exporter when available', async () => {
     // Create a mock exporter
     const mockExporter: PrometheusExporterInterface = {
-      getMetrics: jest.fn().mockReturnValue('# MOCK metric{service="test"} 42'),
+      collect: jest.fn().mockResolvedValue({
+        resourceMetrics: {
+          resource: { attributes: { service: 'test' } },
+          scopeMetrics: [{
+            scope: { name: 'test' },
+            metrics: [{
+              descriptor: { name: 'mock_metric', type: 'COUNTER' },
+              dataPoints: [{ value: 42, attributes: { service: 'test' } }],
+            }],
+          }],
+        },
+        errors: [],
+      }),
     }
 
     // Set the mock exporter
     service.setMetricsExporter(mockExporter)
 
+    // Manually initialize the PrometheusSerializer
+    // eslint-disable-next-line ts/no-require-imports
+    const { PrometheusSerializer } = require('@opentelemetry/exporter-prometheus')
+    service['prometheusSerializer'] = new PrometheusSerializer('', false)
+
     // Get metrics
-    const metrics = service.collectMetrics()
+    const metrics = await service.collectMetrics()
 
     // Verify the mock was used
-    expect(mockExporter.getMetrics).toHaveBeenCalled()
-    expect(metrics).toBe('# MOCK metric{service="test"} 42')
+    expect(mockExporter.collect).toHaveBeenCalled()
+    expect(metrics).toContain('mock_metric_total')
+    expect(metrics).toContain('service="test"')
+    expect(metrics).toContain('target_info')
   })
 
-  it('should handle errors from exporter', () => {
+  it('should handle errors from exporter', async () => {
     // Set an exporter that throws errors
     service.setMetricsExporter({
-      getMetrics: () => { throw new Error('Test error') },
+      collect: async () => { throw new Error('Test error') },
     })
 
+    // Initialize the PrometheusSerializer for this test too
+    // eslint-disable-next-line ts/no-require-imports
+    const { PrometheusSerializer } = require('@opentelemetry/exporter-prometheus')
+    service['prometheusSerializer'] = new PrometheusSerializer('', false)
+
     // Get metrics - should handle the error
-    const metrics = service.collectMetrics()
+    const metrics = await service.collectMetrics()
     expect(metrics).toContain('Error collecting metrics: Test error')
   })
 })

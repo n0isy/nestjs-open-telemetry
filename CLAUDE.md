@@ -1,5 +1,12 @@
 # NestJS OpenTelemetry Project Guidelines
 
+## Key Configuration Changes in v1.3.0
+- `traceInjectors` renamed to `autoInjectors`
+- `spanProcessor` renamed to `spanProcessors` (now takes an array)
+- Added `injectorsConfig` for configuring specific injectors
+- Added `metrics` configuration for enabling metrics collection
+- Added PrometheusExporter integration using the proper collect/serialize pattern
+
 ## Build and Test Commands
 - Build: `pnpm build` (rimraf dist && nest build)
 - Lint: `pnpm lint` (eslint --fix)
@@ -10,6 +17,7 @@
 - Test in watch mode: `pnpm test:watch`
 - Publish to npmjs: `pnpm publish:n0isy` (with --no-git-checks flag)
 - For OTP-protected accounts: `pnpm publish:n0isy --otp=XXXXXX`
+- Run TypeScript checks: `tsc --noEmit`
 
 ## Code Style Guidelines
 - TypeScript with strict type checking (noImplicitAny, strictNullChecks, etc.)
@@ -28,6 +36,8 @@
 - Follow NestJS module architecture
 - Use dependency injection with constructor injection
 - Maintain clean separation between injectors and decorators
+- Use proper OpenTelemetry SDK initialization patterns
+- Metrics follow a similar structure to tracing with decorators and automatic collection
 
 ## Codebase Structure
 
@@ -41,6 +51,12 @@
 - `configure(consumer: MiddlewareConsumer)`: Applies HTTP metrics middleware to all routes.
 - `forRoot(config: Partial<OpenTelemetryModuleConfig>)`: Static method for synchronous configuration.
 - `forRootAsync(configuration: OpenTelemetryModuleAsyncOption)`: Static method for asynchronous configuration.
+
+**Important Configuration Parameters**:
+- `autoInjectors`: Array of injector classes to enable (replaces old `traceInjectors` parameter)
+- `spanProcessors`: Array of span processors (replaces old `spanProcessor` parameter)
+- `injectorsConfig`: Configuration object for specific injectors (e.g., excluding providers)
+- `metrics`: Configuration for metrics collection and exposure
 
 **Private Methods**:
 - `buildProvider(configuration)`: Creates NodeSDK value provider
@@ -65,8 +81,13 @@
 - `createHistogram(name, options)`: Creates a histogram metric
 - `createUpDownCounter(name, options)`: Creates an up-down counter metric
 - `createObservableGauge(name, options)`: Creates an observable gauge metric
-- `collectMetrics()`: Collects and formats metrics from the meter in Prometheus format
+- `collectMetrics()`: Collects and formats metrics from the meter in Prometheus format (now async)
 - `beforeApplicationShutdown()`: Gracefully shuts down the OpenTelemetry SDK
+
+**Updated Interfaces**:
+- `PrometheusExporterInterface.collect()`: Returns a Promise with resourceMetrics and errors
+- Metrics are now properly collected using the PrometheusSerializer instead of a custom getMetrics() method
+- PrometheusExporter is now initialized with `preventServerStart: true` to avoid starting a separate HTTP server
 
 ### Metrics
 
@@ -123,7 +144,11 @@
 ##### MetricsController
 **Purpose**: Exposes metrics endpoint for Prometheus scraping.
 **Key Methods**:
-- `getMetrics(req)`: Returns metrics in Prometheus format
+- `getMetrics(req)`: Returns metrics in Prometheus format (now async)
+**Configuration Options**:
+- `endpoint`: The path where metrics are exposed (default: '/metrics')
+- `authentication`: Optional function to authenticate metrics access requests
+- `prefix`: Optional prefix for all metric names
 
 ### Trace
 
@@ -169,3 +194,24 @@ The project includes multiple specialized injectors for different NestJS compone
 - `TypeormInjector`: Injects tracing into TypeORM operations
 - `ScheduleInjector`: Injects tracing into scheduled tasks (from @nestjs/schedule)
 - `EnhancerInjector`: Base class for pipe, guard, and interceptor injectors
+- `MetricInjector`: Injects metrics into decorated methods
+
+**Injector Configuration**:
+Injectors can be configured via the `injectorsConfig` parameter:
+
+```ts
+OpenTelemetryModule.forRoot({
+  injectorsConfig: {
+    // Exclude specific providers from tracing
+    ProviderInjector: {
+      excludeProviders: [
+        "ConfigService",
+        "Logger", 
+        "OpenTelemetryService",
+        "DatabaseProvider",
+      ]
+    },
+    // Other injector configurations...
+  }
+})
+```
