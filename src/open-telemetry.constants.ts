@@ -7,6 +7,7 @@ import { CompositePropagator, W3CTraceContextPropagator } from '@opentelemetry/c
 import { containerDetector } from '@opentelemetry/resource-detector-container'
 import { envDetector, hostDetectorSync, Resource } from '@opentelemetry/resources'
 import { SEMRESATTRS_SERVICE_VERSION } from '@opentelemetry/semantic-conventions'
+import { MetricInjector } from './metrics/injectors'
 import {
   ControllerInjector,
   DecoratorInjector,
@@ -42,6 +43,7 @@ export const defaultConfig: OpenTelemetryModuleConfig = {
     LoggerInjector,
     ProviderInjector,
     MiddlewareInjector,
+    MetricInjector,
   ],
   autoDetectResources: true,
   contextManager: new AsyncLocalStorageContextManager(),
@@ -54,4 +56,10 @@ export const defaultConfig: OpenTelemetryModuleConfig = {
       new W3CTraceContextPropagator(),
     ],
   }),
+  metrics: {
+    enabled: true,
+    controller: true,
+    endpoint: '/metrics',
+    prefix: '',
+  },
 }
