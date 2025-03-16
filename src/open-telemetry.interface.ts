@@ -21,6 +21,12 @@ export interface PrometheusExporterInterface {
     errors: unknown[] // Updated to match actual PrometheusExporter type
   }>
   setPrefix?: (prefix: string) => void
+  setMetricProducer: (metricProducer: any) => void
+  shutdown: () => void
+}
+
+export interface PrometheusSerializerInterface {
+  serialize: (resourceMetrics: any) => string
 }
 
 export interface MetricsOptions {

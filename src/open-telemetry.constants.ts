@@ -57,7 +57,7 @@ export const defaultConfig: OpenTelemetryModuleConfig = {
     ],
   }),
   metrics: {
-    enabled: true,
+    enabled: false,
     controller: true,
     endpoint: '/metrics',
     prefix: '',

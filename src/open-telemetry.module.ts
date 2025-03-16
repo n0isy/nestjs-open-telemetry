@@ -1,24 +1,32 @@
 import type { DynamicModule, FactoryProvider, ValueProvider } from '@nestjs/common'
-import type { OpenTelemetryModuleAsyncOption, OpenTelemetryModuleConfig, PrometheusExporterInterface } from './open-telemetry.interface'
 import type { Injector } from './trace/injectors'
 import { MiddlewareConsumer, NestModule } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node'
+import { PrometheusExporter, PrometheusSerializer } from '@opentelemetry/exporter-prometheus'
 import { Resource } from '@opentelemetry/resources'
 import { NodeSDK } from '@opentelemetry/sdk-node'
-import { MetricsController } from './metrics/controller'
-import { UniversalHttpMetricsMiddleware } from './metrics/middleware'
+import { createMetricsController } from './metrics/controller/metrics.controller'
+import { UniversalHttpMetricsMiddleware } from './metrics/middleware/universal-http-metrics.middleware'
 import {
   defaultConfig,
 } from './open-telemetry.constants'
 import { SDK_CONFIG, SDK_INJECTORS } from './open-telemetry.enums'
+import {
+  OpenTelemetryModuleAsyncOption,
+  OpenTelemetryModuleConfig,
+  PrometheusExporterInterface,
+  PrometheusSerializerInterface,
+} from './open-telemetry.interface'
+
 import { OpenTelemetryService } from './open-telemetry.service'
 
 export class OpenTelemetryModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
+    // eslint-disable-next-line ts/no-unused-expressions
     consumer
-      .apply(UniversalHttpMetricsMiddleware)
-      .forRoutes('*')
+    // .apply(UniversalHttpMetricsMiddleware)
+    // .forRoutes('*')
   }
 
   public static forRoot(
@@ -31,12 +39,11 @@ export class OpenTelemetryModule implements NestModule {
       config.instrumentations = getNodeAutoInstrumentations()
 
     // Set up providers array
-    const providers = [
+    const providers: any = [
       ...injectors,
       OpenTelemetryService,
       this.buildProvider(config),
       this.buildInjectors(config),
-      UniversalHttpMetricsMiddleware,
       {
         provide: SDK_CONFIG,
         useValue: config,
@@ -50,57 +57,56 @@ export class OpenTelemetryModule implements NestModule {
 
     // Set up controllers array if metrics controller is enabled
     const controllers: any[] = []
-    if (config.metrics?.enabled && config.metrics?.controller) {
-      // Create a metrics exporter
-      // Try to load PrometheusExporter dynamically to avoid breaking when it's not installed
-      let metricsExporter: PrometheusExporterInterface
-
-      try {
-        // Using dynamic import to check if the package is available
-        // eslint-disable-next-line ts/no-require-imports
-        const prometheusModule = require('@opentelemetry/exporter-prometheus')
-        const PrometheusExporter = prometheusModule.PrometheusExporter
-
-        // Create the exporter with preventServerStart: true to prevent HTTP server
-        metricsExporter = new PrometheusExporter({
-          preventServerStart: true,
-          prefix: config.metrics?.prefix || '',
-        })
-      }
-      catch {
-        // PrometheusExporter not available, use fallback
-        metricsExporter = {
-          collect: async () => ({
-            resourceMetrics: { resource: {}, scopeMetrics: [] },
-            errors: [] as unknown[],
-          }),
-          setPrefix: (_unused: string) => { /* no-op */ },
-        }
-      }
-
+    if (config.metrics?.enabled) {
+      const metricsExporter: PrometheusExporterInterface = new PrometheusExporter({
+        preventServerStart: true,
+        prefix: config.metrics?.prefix || '',
+      })
+      const serializer: PrometheusSerializerInterface = new PrometheusSerializer()
+      providers.push(UniversalHttpMetricsMiddleware)
       // Add the exporter provider
       providers.push({
         provide: 'PROMETHEUS_EXPORTER',
         useValue: metricsExporter,
       })
-
-      // Add the exporter setup factory
       providers.push({
-        provide: 'METRICS_EXPORTER_SETUP',
-        useFactory: (service: OpenTelemetryService, exporter: PrometheusExporterInterface) => {
-          service.setMetricsExporter(exporter)
-        },
-        inject: [OpenTelemetryService, 'PROMETHEUS_EXPORTER'],
+        provide: 'PROMETHEUS_SERIALIZER',
+        useValue: serializer,
       })
-
-      // Add the metrics controller with configured path
-      const metricsPath = config.metrics?.endpoint?.startsWith('/')
-        ? config.metrics.endpoint.substring(1)
-        : config.metrics.endpoint || 'metrics'
-
-      controllers.push({
-        type: MetricsController,
-        path: metricsPath,
+      // // Add the exporter setup factory
+      // providers.push({
+      //   provide: 'METRICS_EXPORTER_SETUP',
+      //   useFactory: (service: OpenTelemetryService, exporter: PrometheusExporterInterface) => {
+      //     service.setMetricsExporter(exporter)
+      //   },
+      //   inject: [OpenTelemetryService, 'PROMETHEUS_EXPORTER'],
+      // })
+      if (config.metrics?.controller) {
+        // Add the metrics controller with configured path
+        const metricsPath = config.metrics?.endpoint?.startsWith('/')
+          ? config.metrics.endpoint.substring(1)
+          : config.metrics.endpoint || 'metrics'
+        controllers.push(createMetricsController(metricsPath))
+      }
+    }
+    else {
+      providers.push({
+        provide: 'PROMETHEUS_EXPORTER',
+        useValue: {
+          collect: async () => ({
+            resourceMetrics: { resource: {}, scopeMetrics: [] },
+            errors: [] as unknown[],
+          }),
+          setPrefix: (_unused: string) => { /* no-op */ },
+          setMetricProducer: () => {},
+          shutdown: () => {},
+        },
+      })
+      providers.push({
+        provide: 'PROMETHEUS_SERIALIZER',
+        useValue: {
+          serialize: async () => (''),
+        },
       })
     }
 
@@ -152,7 +158,7 @@ export class OpenTelemetryModule implements NestModule {
       imports: [...(configuration?.imports ?? [])],
       providers: [
         OpenTelemetryService,
-        UniversalHttpMetricsMiddleware,
+        // UniversalHttpMetricsMiddleware,
         this.buildAsyncProvider(),
         this.buildAsyncInjectors(),
         {
@@ -163,64 +169,43 @@ export class OpenTelemetryModule implements NestModule {
         {
           provide: 'PROMETHEUS_EXPORTER',
           useFactory: (config: OpenTelemetryModuleConfig) => {
-            if (config.metrics?.enabled && config.metrics?.controller) {
-              // Try to load PrometheusExporter dynamically
-              try {
-                // eslint-disable-next-line ts/no-require-imports
-                const prometheusModule = require('@opentelemetry/exporter-prometheus')
-                const PrometheusExporter = prometheusModule.PrometheusExporter
-
-                // Create with preventServerStart true to prevent HTTP server
-                return new PrometheusExporter({
-                  preventServerStart: true,
-                  prefix: config.metrics?.prefix || '',
-                })
-              }
-              catch {
-                // Fallback when PrometheusExporter not available
-                return {
-                  collect: async () => ({
-                    resourceMetrics: { resource: {}, scopeMetrics: [] },
-                    errors: [] as unknown[],
-                  }),
-                  setPrefix: (_unused: string) => { /* no-op */ },
-                }
+            if (config.metrics?.enabled) {
+              // Create with preventServerStart true to prevent HTTP server
+              return new PrometheusExporter({
+                preventServerStart: true,
+                prefix: config.metrics?.prefix || '',
+              })
+            }
+            else {
+              return {
+                collect: async () => ({
+                  resourceMetrics: { resource: {}, scopeMetrics: [] },
+                  errors: [] as unknown[],
+                }),
+                setPrefix: (_unused: string) => { /* no-op */ },
+                setMetricProducer: () => {},
+                shutdown: () => {},
               }
             }
-            return null
           },
           inject: [SDK_CONFIG],
         },
         {
-          provide: 'METRICS_EXPORTER_SETUP',
-          useFactory: (service: OpenTelemetryService, exporter: PrometheusExporterInterface) => {
-            if (exporter) {
-              service.setMetricsExporter(exporter)
-            }
-          },
-          inject: [OpenTelemetryService, 'PROMETHEUS_EXPORTER'],
-        },
-        {
-          provide: 'METRICS_PATH_SETUP',
+          provide: 'PROMETHEUS_SERIALIZER',
           useFactory: (config: OpenTelemetryModuleConfig) => {
-            // Return null if metrics are disabled to ensure controller isn't registered
-            if (!config.metrics?.enabled || !config.metrics?.controller) {
-              return null
+            if (config.metrics?.enabled) {
+              return new PrometheusSerializer()
             }
-
-            // Extract path from configuration and prepare it
-            const metricsPath = config.metrics?.endpoint?.startsWith('/')
-              ? config.metrics.endpoint.substring(1)
-              : config.metrics.endpoint || 'metrics'
-
-            // Metrics endpoint will be available at the configured path
-
-            return { path: metricsPath }
+            else {
+              return {
+                serialize: async () => (''),
+              }
+            }
           },
           inject: [SDK_CONFIG],
         },
       ],
-      controllers: [MetricsController],
+      controllers: [],
       exports: [OpenTelemetryService],
     }
   }

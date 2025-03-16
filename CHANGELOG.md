@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.3 (2025-03-11)
+## 1.3.4 (2025-03-11)
 
 ### Performance Improvements
 - Refactored PrometheusSerializer creation in OpenTelemetryService to create a single instance instead of creating a new instance on each metrics collection

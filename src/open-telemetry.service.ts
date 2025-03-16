@@ -1,7 +1,8 @@
-import type { BeforeApplicationShutdown } from '@nestjs/common'
 import type { Counter, Histogram, Meter, ObservableGauge, UpDownCounter } from '@opentelemetry/api'
-import { Injectable } from '@nestjs/common'
+import { BeforeApplicationShutdown, Inject, Injectable, OnModuleDestroy } from '@nestjs/common'
 import { metrics } from '@opentelemetry/api'
+import { MeterProvider } from '@opentelemetry/sdk-metrics'
+import { MetricReader } from '@opentelemetry/sdk-metrics/build/src/export/MetricReader'
 import { NodeSDK } from '@opentelemetry/sdk-node'
 import { PrometheusExporterInterface } from './open-telemetry.interface'
 
@@ -10,32 +11,21 @@ import { PrometheusExporterInterface } from './open-telemetry.interface'
  * Provides access to tracer and meter instances for creating spans and metrics.
  */
 @Injectable()
-export class OpenTelemetryService implements BeforeApplicationShutdown {
+export class OpenTelemetryService implements BeforeApplicationShutdown, OnModuleDestroy {
   private readonly meter: Meter
-  private metricsExporter: PrometheusExporterInterface | null = null
-  private prometheusSerializer: any | null = null
-
-  constructor(private readonly sdk: NodeSDK) {
+  private readonly meterProvider: MeterProvider
+  constructor(private readonly sdk: NodeSDK, @Inject('PROMETHEUS_EXPORTER') private readonly metricsExporter: PrometheusExporterInterface, @Inject('PROMETHEUS_SERIALIZER') private readonly prometheusSerializer: any) {
+    this.meterProvider = new MeterProvider()
+    try {
+      metrics.setGlobalMeterProvider(this.meterProvider)
+      this.meterProvider.addMetricReader(this.metricsExporter as MetricReader)
+    }
+    catch (e) {
+      if (String(e) !== 'Error: MetricReader can not be bound to a MeterProvider again.')
+        throw e
+    }
     // Get the global meter provider and create a meter
     this.meter = metrics.getMeter('default')
-  }
-
-  /**
-   * Set the metrics exporter for collecting metrics
-   */
-  public setMetricsExporter(exporter: PrometheusExporterInterface): void {
-    this.metricsExporter = exporter
-
-    // Initialize the PrometheusSerializer when exporter is set
-    try {
-      // This is dynamically loaded to avoid dependency on @opentelemetry/exporter-prometheus
-      // eslint-disable-next-line ts/no-require-imports
-      const { PrometheusSerializer } = require('@opentelemetry/exporter-prometheus')
-      this.prometheusSerializer = new PrometheusSerializer('', false)
-    }
-    catch (error) {
-      console.error('Error initializing PrometheusSerializer:', error)
-    }
   }
 
   /**
@@ -117,6 +107,14 @@ export class OpenTelemetryService implements BeforeApplicationShutdown {
    * Shutdown the SDK and its components
    */
   public async beforeApplicationShutdown(): Promise<void> {
-    await this.sdk.shutdown()
+    await this.meterProvider?.shutdown({ timeoutMillis: 100 })
+    metrics.disable()
+    await this.sdk?.shutdown()
+  }
+
+  public async onModuleDestroy(): Promise<void> {
+    await this.meterProvider?.shutdown({ timeoutMillis: 100 })
+    metrics.disable()
+    await this.sdk?.shutdown()
   }
 }

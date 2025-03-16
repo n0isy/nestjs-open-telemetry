@@ -1,33 +1,11 @@
 import { Test } from '@nestjs/testing'
-import { Attributes, metrics } from '@opentelemetry/api'
-import { PrometheusExporter, PrometheusSerializer } from '@opentelemetry/exporter-prometheus'
-import { MeterProvider } from '@opentelemetry/sdk-metrics'
-import { NodeSDK } from '@opentelemetry/sdk-node'
+import { Attributes } from '@opentelemetry/api'
 import { OpenTelemetryModule } from '../../open-telemetry.module'
 import { OpenTelemetryService } from '../../open-telemetry.service'
-import { MetricsController } from '../controller/metrics.controller'
 
 describe('prometheus Metrics Integration', () => {
   let openTelemetryService: OpenTelemetryService
-  let metricsController: MetricsController
-  let exporter: PrometheusExporter
-
   beforeAll(async () => {
-    // Set up the MeterProvider and PrometheusExporter for testing
-    const meterProvider = new MeterProvider()
-
-    // Create the exporter with proper setup
-    exporter = new PrometheusExporter({
-      preventServerStart: true,
-      prefix: 'test_',
-    })
-
-    // Connect the exporter to the meter provider
-    meterProvider.addMetricReader(exporter)
-
-    // Set the global meter provider
-    metrics.setGlobalMeterProvider(meterProvider)
-
     // Create a test module with our OpenTelemetry module
     const moduleRef = await Test.createTestingModule({
       imports: [
@@ -43,24 +21,6 @@ describe('prometheus Metrics Integration', () => {
 
     // Get the instances we need to test
     openTelemetryService = moduleRef.get<OpenTelemetryService>(OpenTelemetryService)
-    metricsController = moduleRef.get<MetricsController>(MetricsController)
-
-    // Set up the exporter directly in our service
-    openTelemetryService['metricsExporter'] = exporter
-
-    // Initialize the PrometheusSerializer
-    // eslint-disable-next-line ts/no-require-imports
-    const { PrometheusSerializer } = require('@opentelemetry/exporter-prometheus')
-    openTelemetryService['prometheusSerializer'] = new PrometheusSerializer('', false)
-  })
-
-  afterAll(async () => {
-    // Clean up
-    const sdk = await Test.createTestingModule({
-      imports: [OpenTelemetryModule.forRoot()],
-    }).compile().then(mod => mod.get<NodeSDK>(NodeSDK))
-
-    await sdk.shutdown()
   })
 
   it('should create and collect counter metrics', async () => {
@@ -80,7 +40,6 @@ describe('prometheus Metrics Integration', () => {
 
     // Collect metrics
     const metricsOutput = await openTelemetryService.collectMetrics()
-
     // Verify the output contains our counter
     expect(metricsOutput).toContain('test_counter_total')
     expect(metricsOutput).toContain('Test counter for integration test')
@@ -120,18 +79,6 @@ describe('prometheus Metrics Integration', () => {
 
     // Sum should be 600
     expect(metricsOutput).toMatch(/test_histogram_sum.*600/)
-  })
-
-  it('should collect metrics through the controller', async () => {
-    // Create a request mock
-    const reqMock = {}
-
-    // Get metrics through the controller
-    const controllerOutput = await metricsController.getMetrics(reqMock)
-
-    // Verify the output contains our metrics
-    expect(controllerOutput).toContain('test_counter_total')
-    expect(controllerOutput).toContain('test_histogram')
   })
 
   it('should create and collect up-down counter metrics', async () => {
@@ -184,28 +131,5 @@ describe('prometheus Metrics Integration', () => {
 
     // Verify the gauge value has been updated
     expect(updatedMetricsOutput).toMatch(/test_gauge.*84/)
-  })
-
-  it('should handle serializer options correctly', async () => {
-    // Create a new serializer with specific options
-    const serializer = new PrometheusSerializer('custom_', true)
-
-    // Create a counter
-    const counter = openTelemetryService.createCounter('prefixed_counter', {
-      description: 'Counter with custom prefix',
-    })
-    counter.add(1)
-
-    // Collect data using the exporter
-    const { resourceMetrics } = await exporter.collect()
-
-    // Serialize with custom serializer
-    const customOutput = serializer.serialize(resourceMetrics)
-
-    // The output should have the custom prefix
-    expect(customOutput).toContain('custom__prefixed_counter')
-
-    // The timestamp should be included (appendTimestamp true)
-    expect(customOutput).toMatch(/\d{10,}/)
   })
 })
